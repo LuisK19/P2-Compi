@@ -1,0 +1,3 @@
+void principal ¿:
+  val int numero Ͱ »
+:?

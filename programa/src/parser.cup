@@ -1,0 +1,280 @@
+package generated;
+
+import java_cup.runtime.*;
+
+/* Código auxiliar del parser: conserva el lexer como fuente de tokens y adapta
+ * los errores de CUP para incluir ubicación y lexema 
+ */
+parser code {:
+    Lexer analizadorLexico;
+    private boolean huboErroresSintacticos = false;
+
+    public Parser(Lexer analizadorLexico) {
+        this.analizadorLexico = analizadorLexico;
+    }
+
+    public void report_error(String mensaje, Object infoAdicional) {
+        huboErroresSintacticos = true;
+        String textoError = "Error de sintaxis";
+        
+        if (infoAdicional instanceof java_cup.runtime.Symbol) {
+            java_cup.runtime.Symbol token = (java_cup.runtime.Symbol) infoAdicional;
+            
+            if (token.left >= 0) {
+                textoError += " en la linea " + (token.left + 1); 
+                
+                if (token.right >= 0) {
+                    textoError += ", columna " + (token.right + 1);
+                }
+            }
+            
+            if (token.value != null) {
+                textoError += " [Lexema problematico: '" + token.value + "']";
+            }
+        }
+        
+        textoError += " ==> " + mensaje;
+        System.err.println(textoError);
+    }
+
+    public boolean huboErroresSintacticos() {
+        return huboErroresSintacticos;
+    }
+
+    public void report_fatal_error(String mensaje, Object infoAdicional) {
+        report_error("ERROR FATAL: " + mensaje, infoAdicional);
+    }
+:};
+
+scan with {: return analizadorLexico.next_token(); :};
+/* Terminales*/
+
+/* Palabras reservadas y tipos de dato. */
+terminal VAL, INT, FLOAT, BOOL, CHAR, STR, TRUE, FALSE;
+terminal IF, ELIF, ELSE, WHILE, FOR, RETURN, BREAK, WRITE, READ, VOID, PRINCIPAL;
+
+/* Operadores aritméticos, unarios, relacionales y lógicos. */
+terminal OP_SUMA, OP_RESTA, OP_MULT, OP_DIV, OP_DIV_ENT, OP_MOD, OP_POT;
+terminal OP_INC, OP_DEC;
+
+/* Operadores Relacionales */
+terminal OP_MENOR, OP_MAYOR, OP_MENIG, OP_MAYIG, OP_IGUAL, OP_DIFER;
+
+/* Operadores Logicos */
+terminal OP_AND, OP_OR, OP_NOT;
+
+/* Delimitadores y Simbolos Especiales */
+terminal BLOQUE_ABRE, BLOQUE_CIERRA;
+terminal INDICE_ABRE, INDICE_CIERRA;
+terminal PAREN_ABRE, PAREN_CIERRA;
+terminal ASIGNACION, FIN_SENT, COMA;
+
+/* Tokens con valor */
+terminal String ID;
+terminal Integer ENTERO;
+terminal Double FLOTANTE;
+terminal String CADENA;
+terminal String CARACTER;
+
+/*No terminales*/
+non terminal programa, globalesOpc, funcionesOpc, principal;
+non terminal funcion, params, paramFun, llamadaFun, args;
+non terminal declaracion, declaracionList, asignacion, lineaBloque, bloque, sentencia;
+non terminal literalListInt, literalListFloat;
+non terminal estructuraControl, sentencia_if, elifOpc, elseOpc, sentencia_elif, sentencia_else;
+non terminal sentencia_while, sentencia_for, condicionFor, condicion;
+non terminal sentencia_return, sentencia_break, sentencia_write, paramWrite, sentencia_read;
+non terminal expresion, exprLog, exprLogAnd, exprLogNot, exprRel, opRel;
+non terminal exprArit, termMulDiv, termSumRes, potencia, atomo, accesoList, negativo, unarioSuma, unarioResta;
+non terminal identificador, tipo, literal, literalInt, literalFloat, literalBool, literalChar, literalStr;
+
+/* Simbolo inicial */
+start with programa;
+
+/* Producciones para identificadores, tipos y valores literales. */
+
+identificador ::= ID ;
+
+tipo ::= INT | FLOAT | BOOL | CHAR | STR ;
+
+literal ::= literalInt
+        | literalFloat
+        | literalBool
+        | literalChar
+        | literalStr
+        ;
+
+literalInt   ::= ENTERO ;
+literalFloat ::= FLOTANTE ;
+literalBool  ::= TRUE | FALSE ;
+literalChar  ::= CARACTER ;
+literalStr   ::= CADENA ;
+
+literalListInt ::= literalInt
+               | literalInt COMA literalListInt
+               ;
+
+literalListFloat ::= literalFloat
+                   | literalFloat COMA literalListFloat
+                   ;
+
+declaracion ::= VAL tipo identificador FIN_SENT
+            | VAL tipo identificador ASIGNACION expresion FIN_SENT
+            ;
+
+declaracionList ::= VAL tipo identificador ASIGNACION BLOQUE_ABRE literalListInt BLOQUE_CIERRA FIN_SENT
+                | VAL tipo identificador ASIGNACION BLOQUE_ABRE literalListFloat BLOQUE_CIERRA FIN_SENT
+                ;
+
+asignacion ::= identificador ASIGNACION expresion FIN_SENT
+          | identificador INDICE_ABRE exprArit INDICE_CIERRA ASIGNACION expresion FIN_SENT
+          ;
+
+expresion ::= exprLog ;
+
+exprLog ::= exprLog OP_OR exprLogAnd
+        | exprLogAnd
+        ;
+
+exprLogAnd ::= exprLogAnd OP_AND exprLogNot
+           | exprLogNot
+           ;
+
+exprLogNot ::= OP_NOT exprLogNot
+           | exprRel
+           ;
+
+exprRel ::= INDICE_ABRE exprArit INDICE_CIERRA opRel INDICE_ABRE exprArit INDICE_CIERRA
+        | exprArit
+        ;
+
+opRel ::= OP_MENOR | OP_MAYOR | OP_MENIG | OP_MAYIG | OP_IGUAL | OP_DIFER ;
+
+exprArit ::= termMulDiv
+         | exprArit OP_MOD termMulDiv
+         ;
+
+termMulDiv ::= termSumRes
+           | termMulDiv OP_MULT termSumRes
+           | termMulDiv OP_DIV termSumRes
+           | termMulDiv OP_DIV_ENT termSumRes
+           ;
+
+termSumRes ::= potencia
+           | termSumRes OP_SUMA potencia
+           | termSumRes OP_RESTA potencia
+           ;
+
+potencia ::= atomo
+         | potencia OP_POT atomo
+         ;
+
+atomo ::= literal
+      | identificador
+      | PAREN_ABRE expresion PAREN_CIERRA
+      | negativo
+      | unarioSuma
+      | unarioResta
+      | llamadaFun
+      | accesoList
+      ;
+
+accesoList ::= identificador INDICE_ABRE exprArit INDICE_CIERRA ;
+
+negativo ::= OP_RESTA literalInt
+         | OP_RESTA literalFloat
+         ;
+
+unarioSuma  ::= identificador OP_INC ;
+unarioResta ::= identificador OP_DEC ;
+
+sentencia ::= declaracion
+          | declaracionList
+          | asignacion
+          | expresion FIN_SENT
+          | sentencia_write
+          | sentencia_read
+          | sentencia_return
+          | sentencia_break
+          ;
+
+condicion ::= PAREN_ABRE expresion PAREN_CIERRA ;
+
+sentencia_if ::= IF condicion BLOQUE_ABRE bloque BLOQUE_CIERRA elifOpc elseOpc ;
+
+elifOpc ::= sentencia_elif elifOpc
+        | 
+        ;
+
+elseOpc ::= sentencia_else
+        |
+        ;
+
+sentencia_elif ::= ELIF condicion BLOQUE_ABRE bloque BLOQUE_CIERRA ;
+sentencia_else ::= ELSE BLOQUE_ABRE bloque BLOQUE_CIERRA ;
+
+bloque ::= lineaBloque
+       | lineaBloque bloque
+       ;
+
+lineaBloque ::= sentencia
+            | estructuraControl
+            | error FIN_SENT
+            | error BLOQUE_CIERRA
+            ;
+
+estructuraControl ::= sentencia_if
+                  | sentencia_while
+                  | sentencia_for
+                  ;
+
+sentencia_while ::= WHILE condicion BLOQUE_ABRE bloque BLOQUE_CIERRA ;
+
+sentencia_for ::= FOR condicionFor BLOQUE_ABRE bloque BLOQUE_CIERRA ;
+
+condicionFor ::= declaracion COMA condicion COMA sentencia ;
+
+sentencia_return ::= RETURN expresion FIN_SENT ;
+sentencia_break  ::= BREAK FIN_SENT ;
+
+sentencia_write ::= WRITE PAREN_ABRE paramWrite PAREN_CIERRA FIN_SENT ;
+
+paramWrite ::= literalStr
+           | literalInt
+           | literalBool
+           | literalFloat
+           | identificador
+           ;
+
+sentencia_read ::= READ PAREN_ABRE identificador PAREN_CIERRA FIN_SENT ;
+
+funcion ::= tipo identificador paramFun BLOQUE_ABRE bloque BLOQUE_CIERRA ;
+
+params ::= tipo identificador
+        | tipo identificador COMA params
+        ;
+
+paramFun ::= PAREN_ABRE params PAREN_CIERRA
+         | PAREN_ABRE PAREN_CIERRA
+         ;
+
+llamadaFun ::= identificador PAREN_ABRE args PAREN_CIERRA
+           | identificador PAREN_ABRE PAREN_CIERRA
+           ;
+
+args ::= expresion
+     | expresion COMA args
+     ;
+
+principal ::= VOID PRINCIPAL BLOQUE_ABRE bloque BLOQUE_CIERRA ;
+
+globalesOpc ::= declaracion globalesOpc
+            | declaracionList globalesOpc
+            |
+            ;
+
+funcionesOpc ::= funcion funcionesOpc
+             |
+             ;
+
+programa ::= globalesOpc funcionesOpc principal;

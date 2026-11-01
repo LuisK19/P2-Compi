@@ -1,0 +1,5 @@
+void principal ¿:
+  val int x = -5 »
+  val float y = 3.14 »
+  write є: x :э;
+:? 

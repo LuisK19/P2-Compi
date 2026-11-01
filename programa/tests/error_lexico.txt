@@ -1,0 +1,4 @@
+void principal ¿:
+  val int numero Ͱ 5 » @
+  val int siguiente Ͱ 6 »
+:?

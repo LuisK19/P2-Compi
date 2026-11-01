@@ -1,0 +1,5 @@
+void principal ¿:
+  val int primero Ͱ »
+  val int segundo Ͱ + »
+  val int correcto Ͱ 5 »
+:?
