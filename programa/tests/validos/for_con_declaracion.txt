@@ -1,5 +1,8 @@
 void principal ¿:
-  for val int i Ͱ 0 » , є: ʃ: i :ʅ < ʃ: 5 :ʅ :э , i++ » ¿:
+  for є: val int i Ͱ 0 » ʃ: i :ʅ < ʃ: 5 :ʅ » i++ :э ¿:
     write є: i :э »
+  :?
+  for є: val int j Ͱ 10 » ʃ: j :ʅ > ʃ: 0 :ʅ » j-- :э ¿:
+    write є: j :э »
   :?
 :?

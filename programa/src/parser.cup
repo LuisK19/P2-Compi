@@ -82,7 +82,7 @@ non terminal funcion, tipo_retorno, params, param_fun, llamada_fun, args;
 non terminal declaracion, declaracion_arreglo, asignacion, bloque, lista_lineas, linea_bloque, sentencia;
 non terminal tamano_arreglo, valores_arreglo_int, valor_arreglo_int, valores_arreglo_float, valor_arreglo_float;
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
-non terminal sentencia_while, sentencia_for, encabezado_for, condicion;
+non terminal sentencia_while, sentencia_for, encabezado_for, inicio_for, actualizacion_for, condicion;
 non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
 non terminal expresion, expr_log, operacion_log, operando_log;
 non terminal expr_rel, operacion_rel, operando_rel, operando_igualdad, op_orden, op_igualdad;
@@ -269,7 +269,16 @@ sentencia_while ::= WHILE condicion bloque ;
 
 sentencia_for ::= FOR encabezado_for bloque ;
 
-encabezado_for ::= declaracion COMA condicion COMA sentencia ;
+encabezado_for ::= PARENTESIS_ABRE inicio_for expresion FIN_SENT actualizacion_for PARENTESIS_CIERRA ;
+
+inicio_for ::= declaracion
+           | asignacion
+           ;
+
+actualizacion_for ::= incremento
+                  | decremento
+                  | identificador ASIGNACION expresion
+                  ;
 
 sentencia_return ::= RETURN expresion FIN_SENT ;
 sentencia_break ::= BREAK FIN_SENT ;
