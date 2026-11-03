@@ -99,7 +99,7 @@ COMENTARIO_SIN_CERRAR = "¡"[^!]*
 "++"            { return symbol(sym.OP_INC, yytext()); }
 "--"            { return symbol(sym.OP_DEC, yytext()); }
 "+"             { return symbol(sym.OP_SUMA, yytext()); }
-"-"             { return symbol(sym.OP_RESTA, yytext()); }
+"-"             { return symbol(sym.OP_MENOS, yytext()); }
 "*"             { return symbol(sym.OP_MULT, yytext()); }
 "//"            { return symbol(sym.OP_DIV_ENT, yytext()); }
 "/"             { return symbol(sym.OP_DIV, yytext()); }
@@ -120,12 +120,12 @@ COMENTARIO_SIN_CERRAR = "¡"[^!]*
 "Σ"             { return symbol(sym.OP_NOT, yytext()); }
 
 /* Simbolos especiales */
-"¿:"            { return symbol(sym.BLOQUE_ABRE, yytext());}  
-":?"            { return symbol(sym.BLOQUE_CIERRA, yytext());}
-"ʃ:"            { return symbol(sym.INDICE_ABRE, yytext());}
-":ʅ"            { return symbol(sym.INDICE_CIERRA, yytext());}
-"є:"            { return symbol(sym.PAREN_ABRE, yytext());}
-":э"            { return symbol(sym.PAREN_CIERRA, yytext());}
+"¿:"            { return symbol(sym.LLAVE_ABRE, yytext());}  
+":?"            { return symbol(sym.LLAVE_CIERRA, yytext());}
+"ʃ:"            { return symbol(sym.CORCHETE_ABRE, yytext());}
+":ʅ"            { return symbol(sym.CORCHETE_CIERRA, yytext());}
+"є:"            { return symbol(sym.PARENTESIS_ABRE, yytext());}
+":э"            { return symbol(sym.PARENTESIS_CIERRA, yytext());}
 "Ͱ"             { return symbol(sym.ASIGNACION, yytext());}
 "»"             { return symbol(sym.FIN_SENT, yytext());}
 ","             { return symbol(sym.COMA, yytext());}

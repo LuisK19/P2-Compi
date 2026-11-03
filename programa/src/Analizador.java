@@ -150,7 +150,7 @@ public class Analizador {
                 return "Literal boolean";
 
             case sym.OP_SUMA:
-            case sym.OP_RESTA:
+            case sym.OP_MENOS:
             case sym.OP_MULT:
             case sym.OP_DIV:
             case sym.OP_DIV_ENT:
@@ -170,12 +170,12 @@ public class Analizador {
             case sym.ASIGNACION:
                 return "Operador";
 
-            case sym.BLOQUE_ABRE:
-            case sym.BLOQUE_CIERRA:
-            case sym.INDICE_ABRE:
-            case sym.INDICE_CIERRA:
-            case sym.PAREN_ABRE:
-            case sym.PAREN_CIERRA:
+            case sym.LLAVE_ABRE:
+            case sym.LLAVE_CIERRA:
+            case sym.CORCHETE_ABRE:
+            case sym.CORCHETE_CIERRA:
+            case sym.PARENTESIS_ABRE:
+            case sym.PARENTESIS_CIERRA:
             case sym.FIN_SENT:
             case sym.COMA:
                 return "Simbolo";
