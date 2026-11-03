@@ -8,6 +8,7 @@ import java_cup.runtime.Symbol;
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,7 +30,9 @@ public class Analizador {
      * @param args rutas opcionales del archivo de entrada y del reporte CSV
      */
     public static void main(String[] args) {
-        String archivoEntrada = args.length > 0 ? args[0] : "tests\\error_lexico.txt";
+        usarSalidaUtf8();
+
+        String archivoEntrada = args.length > 0 ? args[0] : "tests/validos/basico.txt";
         String archivoSalidaTokens = args.length > 1 ? args[1] : "tokens_encontrados.csv";
 
         if (!new File(archivoEntrada).exists()) {
@@ -46,6 +49,14 @@ public class Analizador {
         }
 
         ejecutarAnalisisSintactico(archivoEntrada);
+    }
+
+    /**
+     * Configura la salida de consola en UTF-8.
+     */
+    private static void usarSalidaUtf8() {
+        System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
+        System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
     }
 
     /**
@@ -82,7 +93,7 @@ public class Analizador {
 
             if (analizadorLexico.huboErroresLexicos()) {
                 System.err.print(analizadorLexico.obtenerErroresLexicos());
-                System.out.println("ERROR LEXICO: Se encontraron caracteres no reconocidos. Revisa -> " + rutaSalida);
+                System.out.println("ERROR LEXICO: Se encontraron errores lexicos. Tokens validos en -> " + rutaSalida);
             } else {
                 System.out.println("EXITO: Archivo de tokens generado en -> " + rutaSalida);
             }

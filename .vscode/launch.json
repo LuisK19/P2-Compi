@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "App - basico.txt",
+            "request": "launch",
+            "mainClass": "src.App",
+            "cwd": "${workspaceFolder}/programa",
+            "args": "tests/validos/basico.txt"
+        },
+        {
+            "type": "java",
+            "name": "App - escoger archivo",
+            "request": "launch",
+            "mainClass": "src.App",
+            "cwd": "${workspaceFolder}/programa",
+            "args": "${command:SpecifyProgramArgs}"
+        }
+    ]
+}
