@@ -79,14 +79,15 @@ terminal String CARACTER;
 /*No terminales*/
 non terminal programa, globales_opc, funciones_opc, principal;
 non terminal funcion, tipo_retorno, params, param_fun, llamada_fun, args;
-non terminal declaracion, declaracion_arreglo, asignacion, linea_bloque, bloque, sentencia;
-non terminal tamano_arreglo, valores_arreglo_int, valores_arreglo_float;
+non terminal declaracion, declaracion_arreglo, asignacion, bloque, lista_lineas, linea_bloque, sentencia;
+non terminal tamano_arreglo, valores_arreglo_int, valor_arreglo_int, valores_arreglo_float, valor_arreglo_float;
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
 non terminal sentencia_while, sentencia_for, encabezado_for, condicion;
 non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
 non terminal expresion, expr_log, operacion_log, operando_log;
 non terminal expr_rel, operacion_rel, operando_rel, operando_igualdad, op_orden, op_igualdad;
-non terminal expr_arit, term_mul_div, term_sum_res, potencia, atomo, acceso_arreglo, negativo, incremento, decremento;
+non terminal expr_arit, term_mul_div, term_sum_res, potencia, atomo, acceso_arreglo, incremento, decremento;
+non terminal negativo, negativo_int, negativo_float;
 non terminal identificador, tipo, literal, literal_int, literal_float, literal_bool, literal_char, literal_str;
 
 /* Simbolo inicial */
@@ -111,13 +112,21 @@ literal_bool  ::= TRUE | FALSE ;
 literal_char  ::= CARACTER ;
 literal_str   ::= CADENA ;
 
-valores_arreglo_int ::= literal_int
-                    | literal_int COMA valores_arreglo_int
+valores_arreglo_int ::= valor_arreglo_int
+                    | valor_arreglo_int COMA valores_arreglo_int
                     ;
 
-valores_arreglo_float ::= literal_float
-                      | literal_float COMA valores_arreglo_float
+valor_arreglo_int ::= literal_int
+                  | negativo_int
+                  ;
+
+valores_arreglo_float ::= valor_arreglo_float
+                      | valor_arreglo_float COMA valores_arreglo_float
                       ;
+
+valor_arreglo_float ::= literal_float
+                    | negativo_float
+                    ;
 
 declaracion ::= VAL tipo identificador FIN_SENT
             | VAL tipo identificador ASIGNACION expresion FIN_SENT
@@ -200,9 +209,12 @@ atomo ::= literal
 
 acceso_arreglo ::= identificador CORCHETE_ABRE expr_arit CORCHETE_CIERRA ;
 
-negativo ::= OP_MENOS literal_int
-         | OP_MENOS literal_float
+negativo ::= negativo_int
+         | negativo_float
          ;
+
+negativo_int ::= OP_MENOS literal_int ;
+negativo_float ::= OP_MENOS literal_float ;
 
 incremento ::= identificador OP_INC ;
 decremento ::= identificador OP_DEC ;
@@ -221,7 +233,7 @@ sentencia ::= declaracion
 
 condicion ::= PARENTESIS_ABRE expresion PARENTESIS_CIERRA ;
 
-sentencia_if ::= IF condicion LLAVE_ABRE bloque LLAVE_CIERRA elif_opc else_opc ;
+sentencia_if ::= IF condicion bloque elif_opc else_opc ;
 
 elif_opc ::= sentencia_elif elif_opc
          | 
@@ -231,17 +243,21 @@ else_opc ::= sentencia_else
          |
          ;
 
-sentencia_elif ::= ELIF condicion LLAVE_ABRE bloque LLAVE_CIERRA ;
-sentencia_else ::= ELSE LLAVE_ABRE bloque LLAVE_CIERRA ;
+sentencia_elif ::= ELIF condicion bloque ;
+sentencia_else ::= ELSE bloque ;
 
-bloque ::= linea_bloque
-       | linea_bloque bloque
+bloque ::= LLAVE_ABRE lista_lineas LLAVE_CIERRA
+       | LLAVE_ABRE error LLAVE_CIERRA
        ;
+
+lista_lineas ::= linea_bloque
+             | linea_bloque lista_lineas
+             ;
 
 linea_bloque ::= sentencia
              | estructura_control
+             | bloque
              | error FIN_SENT
-             | error LLAVE_CIERRA
              ;
 
 estructura_control ::= sentencia_if
@@ -249,9 +265,9 @@ estructura_control ::= sentencia_if
                    | sentencia_for
                    ;
 
-sentencia_while ::= WHILE condicion LLAVE_ABRE bloque LLAVE_CIERRA ;
+sentencia_while ::= WHILE condicion bloque ;
 
-sentencia_for ::= FOR encabezado_for LLAVE_ABRE bloque LLAVE_CIERRA ;
+sentencia_for ::= FOR encabezado_for bloque ;
 
 encabezado_for ::= declaracion COMA condicion COMA sentencia ;
 
@@ -269,7 +285,7 @@ param_write ::= literal_str
 
 sentencia_read ::= READ PARENTESIS_ABRE identificador PARENTESIS_CIERRA FIN_SENT ;
 
-funcion ::= tipo_retorno identificador param_fun LLAVE_ABRE bloque LLAVE_CIERRA ;
+funcion ::= tipo_retorno identificador param_fun bloque ;
 
 tipo_retorno ::= INT | FLOAT | CHAR | BOOL ;
 
@@ -289,7 +305,7 @@ args ::= expresion
      | expresion COMA args
      ;
 
-principal ::= VOID PRINCIPAL LLAVE_ABRE bloque LLAVE_CIERRA ;
+principal ::= VOID PRINCIPAL bloque ;
 
 globales_opc ::= declaracion globales_opc
              | declaracion_arreglo globales_opc
