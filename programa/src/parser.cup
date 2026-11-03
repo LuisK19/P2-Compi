@@ -80,7 +80,7 @@ terminal String CARACTER;
 non terminal programa, globales_opc, funciones_opc, principal;
 non terminal funcion, tipo_retorno, params, param_fun, llamada_fun, args;
 non terminal declaracion, declaracion_arreglo, asignacion, linea_bloque, bloque, sentencia;
-non terminal valores_arreglo_int, valores_arreglo_float;
+non terminal tamano_arreglo, valores_arreglo_int, valores_arreglo_float;
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
 non terminal sentencia_while, sentencia_for, encabezado_for, condicion;
 non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
@@ -123,9 +123,12 @@ declaracion ::= VAL tipo identificador FIN_SENT
             | VAL tipo identificador ASIGNACION expresion FIN_SENT
             ;
 
-declaracion_arreglo ::= VAL tipo identificador ASIGNACION LLAVE_ABRE valores_arreglo_int LLAVE_CIERRA FIN_SENT
-                    | VAL tipo identificador ASIGNACION LLAVE_ABRE valores_arreglo_float LLAVE_CIERRA FIN_SENT
+declaracion_arreglo ::= VAL tipo identificador tamano_arreglo FIN_SENT
+                    | VAL tipo identificador tamano_arreglo ASIGNACION LLAVE_ABRE valores_arreglo_int LLAVE_CIERRA FIN_SENT
+                    | VAL tipo identificador tamano_arreglo ASIGNACION LLAVE_ABRE valores_arreglo_float LLAVE_CIERRA FIN_SENT
                     ;
+
+tamano_arreglo ::= CORCHETE_ABRE literal_int CORCHETE_CIERRA ;
 
 asignacion ::= identificador ASIGNACION expresion FIN_SENT
            | identificador CORCHETE_ABRE expr_arit CORCHETE_CIERRA ASIGNACION expresion FIN_SENT

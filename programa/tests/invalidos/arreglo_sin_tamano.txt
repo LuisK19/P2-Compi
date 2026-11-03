@@ -1,0 +1,3 @@
+void principal ¿:
+  val int arr Ͱ ¿: 1, 2, 3 :? »
+:?
