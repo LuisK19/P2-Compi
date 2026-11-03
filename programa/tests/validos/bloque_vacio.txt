@@ -1,0 +1,4 @@
+void principal ¿:
+  if є: true :э ¿: :?
+  while є: false :э ¿: :?
+:?

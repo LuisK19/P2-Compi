@@ -1,0 +1,5 @@
+void principal ¿:
+  val int x Ͱ 5 »
+  ¡ comentario que nunca se cierra
+  val int y Ͱ 6 »
+:?

@@ -1,0 +1,5 @@
+void principal ¿:
+  val str s Ͱ "hola »
+  val int x Ͱ 5 »
+  write є: "fin" :э »
+:?

@@ -1,0 +1,5 @@
+void principal ¿:
+  val int a Ͱ 1 »
+  val int b Ͱ 2 »
+  val bool r Ͱ a < b »
+:?

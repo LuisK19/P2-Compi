@@ -31,6 +31,14 @@ import java_cup.runtime.*;
     public String obtenerErroresLexicos() {
         return erroresLexicos.toString();
     }
+
+    // Registra un error lexico con su posicion.
+    private void reportarError(String descripcion) {
+        huboErroresLexicos = true;
+        erroresLexicos.append("Error lexico en linea " + (yyline + 1)
+                + ", columna " + (yycolumn + 1) + ": " + descripcion);
+        erroresLexicos.append(System.lineSeparator());
+    }
 %}
 
 /* Macros */
@@ -48,12 +56,14 @@ ID              = [a-zA-Z_][a-zA-Z0-9_]*
 
 ID_INVALIDO = [0-9]+{ID}
 
-CADENA          = \"[^\"]*\"
-CARACTER        = \'[^\']\'
+CADENA          = \"[^\"\r\n]*\"
+CADENA_SIN_CERRAR = \"[^\"\r\n]*
+CARACTER        = \'[^\'\r\n]\'
 ESPACIOS        = [ \t\r\n]+
 
-COMENTARIO_LINEA = "|"[^\n]* 
+COMENTARIO_LINEA = "|"[^\n]*
 COMENTARIO_MULTILINEA = "¡"[^!]*"!"
+COMENTARIO_SIN_CERRAR = "¡"[^!]*
 
 %%
 
@@ -134,17 +144,7 @@ COMENTARIO_MULTILINEA = "¡"[^!]*"!"
 /* Error lexico */
 
 
-{ID_INVALIDO} {
-              huboErroresLexicos = true;
-              erroresLexicos.append("Error lexico en linea ").append(yyline + 1)
-                  .append(", columna ").append(yycolumn + 1)
-                  .append(": identificador no puede comenzar con un digito '")
-                  .append(yytext()).append("'")
-                  .append(System.lineSeparator());
-            }
-
-[^]     { huboErroresLexicos = true;
-              erroresLexicos.append("Error lexico en linea ").append(yyline + 1)
-                  .append(", columna ").append(yycolumn + 1)
-                  .append(": caracter no reconocido '").append(yytext()).append("'")
-                  .append(System.lineSeparator()); }
+{ID_INVALIDO}           { reportarError("identificador no puede comenzar con un digito '" + yytext() + "'"); }
+{CADENA_SIN_CERRAR}     { reportarError("string sin cerrar en la misma linea " + yytext()); }
+{COMENTARIO_SIN_CERRAR} { reportarError("comentario multilinea sin cerrar (falta '!')"); }
+[^]                     { reportarError("caracter no reconocido '" + yytext() + "'"); }
