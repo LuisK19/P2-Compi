@@ -78,13 +78,14 @@ terminal String CARACTER;
 
 /*No terminales*/
 non terminal programa, globales_opc, funciones_opc, principal;
-non terminal funcion, params, param_fun, llamada_fun, args;
+non terminal funcion, tipo_retorno, params, param_fun, llamada_fun, args;
 non terminal declaracion, declaracion_arreglo, asignacion, linea_bloque, bloque, sentencia;
 non terminal valores_arreglo_int, valores_arreglo_float;
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
 non terminal sentencia_while, sentencia_for, encabezado_for, condicion;
 non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
-non terminal expresion, expr_log, operando_log, expr_rel, op_rel;
+non terminal expresion, expr_log, operacion_log, operando_log;
+non terminal expr_rel, operacion_rel, operando_rel, operando_igualdad, op_orden, op_igualdad;
 non terminal expr_arit, term_mul_div, term_sum_res, potencia, atomo, acceso_arreglo, negativo, incremento, decremento;
 non terminal identificador, tipo, literal, literal_int, literal_float, literal_bool, literal_char, literal_str;
 
@@ -132,19 +133,38 @@ asignacion ::= identificador ASIGNACION expresion FIN_SENT
 
 expresion ::= expr_log ;
 
-expr_log ::= operando_log OP_AND operando_log
-         | operando_log OP_OR operando_log
-         | OP_NOT operando_log
+expr_log ::= operacion_log
          | expr_rel
          ;
 
-operando_log ::= PARENTESIS_ABRE expresion PARENTESIS_CIERRA ;
+operacion_log ::= operando_log OP_AND operando_log
+              | operando_log OP_OR operando_log
+              | OP_NOT operando_log
+              ;
 
-expr_rel ::= CORCHETE_ABRE expr_arit CORCHETE_CIERRA op_rel CORCHETE_ABRE expr_arit CORCHETE_CIERRA
+operando_log ::= PARENTESIS_ABRE expr_arit PARENTESIS_CIERRA
+             | PARENTESIS_ABRE operacion_rel PARENTESIS_CIERRA
+             | PARENTESIS_ABRE operacion_log PARENTESIS_CIERRA
+             ;
+
+expr_rel ::= operacion_rel
          | expr_arit
          ;
 
-op_rel ::= OP_MENOR | OP_MAYOR | OP_MENIG | OP_MAYIG | OP_IGUAL | OP_DIFER ;
+operacion_rel ::= operando_rel op_orden operando_rel
+              | operando_igualdad op_igualdad operando_igualdad
+              ;
+
+operando_rel ::= CORCHETE_ABRE expr_arit CORCHETE_CIERRA ;
+
+operando_igualdad ::= operando_rel
+                  | CORCHETE_ABRE operacion_rel CORCHETE_CIERRA
+                  | CORCHETE_ABRE operacion_log CORCHETE_CIERRA
+                  ;
+
+op_orden ::= OP_MENOR | OP_MAYOR | OP_MENIG | OP_MAYIG ;
+
+op_igualdad ::= OP_IGUAL | OP_DIFER ;
 
 expr_arit ::= term_mul_div
           | expr_arit OP_MOD term_mul_div
@@ -167,7 +187,7 @@ potencia ::= atomo
 
 atomo ::= literal
       | identificador
-      | PARENTESIS_ABRE expresion PARENTESIS_CIERRA
+      | PARENTESIS_ABRE expr_arit PARENTESIS_CIERRA
       | negativo
       | incremento
       | decremento
@@ -187,7 +207,9 @@ decremento ::= identificador OP_DEC ;
 sentencia ::= declaracion
           | declaracion_arreglo
           | asignacion
-          | expresion FIN_SENT
+          | incremento FIN_SENT
+          | decremento FIN_SENT
+          | llamada_fun FIN_SENT
           | sentencia_write
           | sentencia_read
           | sentencia_return
@@ -244,7 +266,9 @@ param_write ::= literal_str
 
 sentencia_read ::= READ PARENTESIS_ABRE identificador PARENTESIS_CIERRA FIN_SENT ;
 
-funcion ::= tipo identificador param_fun LLAVE_ABRE bloque LLAVE_CIERRA ;
+funcion ::= tipo_retorno identificador param_fun LLAVE_ABRE bloque LLAVE_CIERRA ;
+
+tipo_retorno ::= INT | FLOAT | CHAR | BOOL ;
 
 params ::= tipo identificador
        | tipo identificador COMA params
