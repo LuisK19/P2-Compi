@@ -25,6 +25,10 @@ public class SimboloFuncion extends Simbolo {
         tiposParametros.add(tipoParametro);
     }
 
+    public ArrayList<String> getTiposParametros() {
+        return tiposParametros;
+    }
+
     @Override
     public String getInformacionExtra() {
         if (tiposParametros.isEmpty()) {

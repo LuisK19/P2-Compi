@@ -86,6 +86,7 @@ public class App {
                 "src/SimboloFuncion.java",
                 "src/Alcance.java",
                 "src/TablaSimbolos.java",
+                "src/ResultadoExpresion.java",
                 "src/Analizador.java");
 
         if (resultado != 0) {

@@ -216,7 +216,8 @@ public class Analizador {
             System.out.println("Tabla de simbolos generada en -> " + rutaTabla);
 
             if (analizadorLexico.huboErroresLexicos()
-                    || analizadorSintactico.huboErroresSintacticos()) {
+                    || analizadorSintactico.huboErroresSintacticos()
+                    || analizadorSintactico.huboErroresSemanticos()) {
                 System.out.println(
                         "\nRESULTADO: El archivo fuente NO puede ser generado por la gramatica (Errores encontrados).");
                 return;

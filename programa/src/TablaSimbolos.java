@@ -59,6 +59,35 @@ public class TablaSimbolos {
     }
 
     /**
+     * Busca un símbolo desde el alcance actual hacia los alcances que lo contienen,
+     * terminando en el global.
+     *
+     * @param nombre nombre del símbolo
+     * @return el símbolo visible con ese nombre, o {@code null} si no existe
+     */
+    public Simbolo buscar(String nombre) {
+        Alcance alcance = alcancesAbiertos.peek();
+        while (alcance != null) {
+            Simbolo encontrado = alcance.buscar(nombre);
+            if (encontrado != null) {
+                return encontrado;
+            }
+            alcance = alcance.getPadre();
+        }
+        return null;
+    }
+
+    /**
+     * Busca un símbolo solamente en el alcance actual.
+     *
+     * @param nombre nombre del símbolo
+     * @return el símbolo encontrado, o {@code null} si no está en el alcance actual
+     */
+    public Simbolo buscarEnAlcanceActual(String nombre) {
+        return alcancesAbiertos.peek().buscar(nombre);
+    }
+
+    /**
      * Escribe todos los alcances y sus símbolos en un archivo de texto.
      *
      * @param rutaSalida ruta del archivo que se creará

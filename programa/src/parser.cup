@@ -1,6 +1,7 @@
 package generated;
 
 import java_cup.runtime.*;
+import src.ResultadoExpresion;
 import src.Simbolo;
 import src.SimboloArreglo;
 import src.SimboloFuncion;
@@ -12,6 +13,7 @@ import src.TablaSimbolos;
 parser code {:
     Lexer analizadorLexico;
     private boolean huboErroresSintacticos = false;
+    private boolean huboErroresSemanticos = false;
     TablaSimbolos tabla = new TablaSimbolos();
     SimboloFuncion funcionActual;
 
@@ -47,11 +49,29 @@ parser code {:
         return huboErroresSintacticos;
     }
 
+    public boolean huboErroresSemanticos() {
+        return huboErroresSemanticos;
+    }
+
     public TablaSimbolos getTablaSimbolos() {
         return tabla;
     }
 
-    // En los metodos siguientes la linea y columna llegan desde 0; en la tabla se guardan desde 1.
+    String tipoDeSimbolo(String nombre) {
+        Simbolo simbolo = tabla.buscar(nombre);
+        if (simbolo == null) {
+            return ResultadoExpresion.TIPO_ERROR;
+        }
+        return simbolo.getTipo();
+    }
+
+    // En los metodos siguientes la linea y columna llegan desde 0; se muestran y guardan desde 1.
+    void reportarErrorSemantico(String mensaje, int linea, int columna) {
+        huboErroresSemanticos = true;
+        System.err.println("Error semantico en la linea " + (linea + 1)
+                + ", columna " + (columna + 1) + ": " + mensaje);
+    }
+
     void agregarSimbolo(String nombre, String categoria, String tipo, int linea, int columna) {
         tabla.agregar(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
     }
@@ -107,21 +127,25 @@ terminal String CARACTER;
 
 /*No terminales*/
 non terminal programa, globales_opc, funciones_opc, principal, encabezado_principal;
-non terminal funcion, encabezado_funcion, cuerpo_funcion, params, parametro, param_fun, llamada_fun, args;
+non terminal funcion, encabezado_funcion, cuerpo_funcion, params, parametro, param_fun, args;
 non terminal declaracion, declaracion_arreglo, asignacion, bloque, inicio_bloque, lista_lineas, linea_bloque, sentencia;
 non terminal valores_arreglo_int, valor_arreglo_int, valores_arreglo_float, valor_arreglo_float;
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
 non terminal sentencia_while, sentencia_for, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
 non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
-non terminal expresion, expr_log, operacion_log, negacion, operando_log;
-non terminal expr_rel, operacion_rel, operando_rel, operando_igualdad, op_orden, op_igualdad;
-non terminal expr_arit, term_mul_div, term_sum_res, potencia, atomo, acceso_arreglo, incremento, decremento;
-non terminal negativo, negativo_int, negativo_float;
-non terminal literal, literal_float, literal_bool, literal_char, literal_str;
+non terminal op_orden, op_igualdad;
+non terminal negativo_int, negativo_float;
+non terminal literal_float, literal_bool, literal_char, literal_str;
 
 /* No terminales que devuelven un valor para la tabla de símbolos */
 non terminal String identificador, tipo;
 non terminal Integer literal_int, tamano_arreglo;
+
+/* No terminales que devuelven el resultado de una expresión */
+non terminal ResultadoExpresion expresion, expr_log, operacion_log, negacion, operando_log;
+non terminal ResultadoExpresion expr_rel, operacion_rel, operando_rel, operando_igualdad;
+non terminal ResultadoExpresion expr_arit, term_mul_div, term_sum_res, potencia, atomo;
+non terminal ResultadoExpresion acceso_arreglo, incremento, decremento, llamada_fun, negativo, literal;
 
 /* Simbolo inicial */
 start with programa;
@@ -137,11 +161,11 @@ tipo ::= INT   {: RESULT = "int"; :}
      | STR   {: RESULT = "string"; :}
      ;
 
-literal ::= literal_int
-        | literal_float
-        | literal_bool
-        | literal_char
-        | literal_str
+literal ::= literal_int   {: RESULT = new ResultadoExpresion("int"); :}
+        | literal_float {: RESULT = new ResultadoExpresion("float"); :}
+        | literal_bool  {: RESULT = new ResultadoExpresion("bool"); :}
+        | literal_char  {: RESULT = new ResultadoExpresion("char"); :}
+        | literal_str   {: RESULT = new ResultadoExpresion("string"); :}
         ;
 
 literal_int   ::= ENTERO:valor {: RESULT = valor; :} ;
@@ -186,82 +210,84 @@ asignacion ::= identificador ASIGNACION expresion FIN_SENT
            | identificador CORCHETE_ABRE expr_arit CORCHETE_CIERRA ASIGNACION expresion FIN_SENT
            ;
 
-expresion ::= expr_log ;
+expresion ::= expr_log:valor {: RESULT = valor; :} ;
 
-expr_log ::= operacion_log
-         | expr_rel
+expr_log ::= operacion_log:valor {: RESULT = valor; :}
+         | expr_rel:valor        {: RESULT = valor; :}
          ;
 
-operacion_log ::= operando_log OP_AND operando_log
-              | operando_log OP_OR operando_log
-              | negacion
+operacion_log ::= operando_log OP_AND operando_log {: RESULT = new ResultadoExpresion("bool"); :}
+              | operando_log OP_OR operando_log    {: RESULT = new ResultadoExpresion("bool"); :}
+              | negacion:valor                     {: RESULT = valor; :}
               ;
 
-negacion ::= OP_NOT operando_log ;
+negacion ::= OP_NOT operando_log {: RESULT = new ResultadoExpresion("bool"); :} ;
 
-operando_log ::= PARENTESIS_ABRE expresion PARENTESIS_CIERRA
-             | negacion
+operando_log ::= PARENTESIS_ABRE expresion:valor PARENTESIS_CIERRA {: RESULT = valor; :}
+             | negacion:valor                                      {: RESULT = valor; :}
              ;
 
-expr_rel ::= operacion_rel
-         | expr_arit
+expr_rel ::= operacion_rel:valor {: RESULT = valor; :}
+         | expr_arit:valor       {: RESULT = valor; :}
          ;
 
-operacion_rel ::= operando_rel op_orden operando_rel
-              | operando_igualdad op_igualdad operando_igualdad
+operacion_rel ::= operando_rel op_orden operando_rel                {: RESULT = new ResultadoExpresion("bool"); :}
+              | operando_igualdad op_igualdad operando_igualdad     {: RESULT = new ResultadoExpresion("bool"); :}
               ;
 
-operando_rel ::= CORCHETE_ABRE expr_arit CORCHETE_CIERRA ;
+operando_rel ::= CORCHETE_ABRE expr_arit:valor CORCHETE_CIERRA {: RESULT = valor; :} ;
 
-operando_igualdad ::= operando_rel
-                  | CORCHETE_ABRE operacion_rel CORCHETE_CIERRA
-                  | CORCHETE_ABRE operacion_log CORCHETE_CIERRA
+operando_igualdad ::= operando_rel:valor                                  {: RESULT = valor; :}
+                  | CORCHETE_ABRE operacion_rel:valor CORCHETE_CIERRA     {: RESULT = valor; :}
+                  | CORCHETE_ABRE operacion_log:valor CORCHETE_CIERRA     {: RESULT = valor; :}
                   ;
 
 op_orden ::= OP_MENOR | OP_MAYOR | OP_MENIG | OP_MAYIG ;
 
 op_igualdad ::= OP_IGUAL | OP_DIFER ;
 
-expr_arit ::= term_mul_div
-          | expr_arit OP_MOD term_mul_div
+expr_arit ::= term_mul_div:valor                        {: RESULT = valor; :}
+          | expr_arit:izquierdo OP_MOD term_mul_div     {: RESULT = izquierdo; :}
           ;
 
-term_mul_div ::= term_sum_res
-             | term_mul_div OP_MULT term_sum_res
-             | term_mul_div OP_DIV term_sum_res
-             | term_mul_div OP_DIV_ENT term_sum_res
+term_mul_div ::= term_sum_res:valor                             {: RESULT = valor; :}
+             | term_mul_div:izquierdo OP_MULT term_sum_res      {: RESULT = izquierdo; :}
+             | term_mul_div:izquierdo OP_DIV term_sum_res       {: RESULT = izquierdo; :}
+             | term_mul_div:izquierdo OP_DIV_ENT term_sum_res   {: RESULT = izquierdo; :}
              ;
 
-term_sum_res ::= potencia
-             | term_sum_res OP_SUMA potencia
-             | term_sum_res OP_MENOS potencia
+term_sum_res ::= potencia:valor                             {: RESULT = valor; :}
+             | term_sum_res:izquierdo OP_SUMA potencia      {: RESULT = izquierdo; :}
+             | term_sum_res:izquierdo OP_MENOS potencia     {: RESULT = izquierdo; :}
              ;
 
-potencia ::= atomo
-         | atomo OP_POT potencia
+potencia ::= atomo:valor                        {: RESULT = valor; :}
+         | atomo:izquierdo OP_POT potencia      {: RESULT = izquierdo; :}
          ;
 
-atomo ::= literal
-      | identificador
-      | PARENTESIS_ABRE expresion PARENTESIS_CIERRA
-      | negativo
-      | incremento
-      | decremento
-      | llamada_fun
-      | acceso_arreglo
+atomo ::= literal:valor                                     {: RESULT = valor; :}
+      | identificador:nombre                                {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :}
+      | PARENTESIS_ABRE expresion:valor PARENTESIS_CIERRA   {: RESULT = valor; :}
+      | negativo:valor                                      {: RESULT = valor; :}
+      | incremento:valor                                    {: RESULT = valor; :}
+      | decremento:valor                                    {: RESULT = valor; :}
+      | llamada_fun:valor                                   {: RESULT = valor; :}
+      | acceso_arreglo:valor                                {: RESULT = valor; :}
       ;
 
-acceso_arreglo ::= identificador CORCHETE_ABRE expr_arit CORCHETE_CIERRA ;
+acceso_arreglo ::= identificador:nombre CORCHETE_ABRE expr_arit CORCHETE_CIERRA
+                   {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :}
+               ;
 
-negativo ::= negativo_int
-         | negativo_float
+negativo ::= negativo_int   {: RESULT = new ResultadoExpresion("int"); :}
+         | negativo_float   {: RESULT = new ResultadoExpresion("float"); :}
          ;
 
 negativo_int ::= OP_MENOS literal_int ;
 negativo_float ::= OP_MENOS literal_float ;
 
-incremento ::= identificador OP_INC ;
-decremento ::= identificador OP_DEC ;
+incremento ::= identificador:nombre OP_INC {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :} ;
+decremento ::= identificador:nombre OP_DEC {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :} ;
 
 sentencia ::= declaracion
           | declaracion_arreglo
@@ -372,8 +398,10 @@ param_fun ::= PARENTESIS_ABRE params PARENTESIS_CIERRA
           | PARENTESIS_ABRE PARENTESIS_CIERRA
           ;
 
-llamada_fun ::= identificador PARENTESIS_ABRE args PARENTESIS_CIERRA
-            | identificador PARENTESIS_ABRE PARENTESIS_CIERRA
+llamada_fun ::= identificador:nombre PARENTESIS_ABRE args PARENTESIS_CIERRA
+                {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :}
+            | identificador:nombre PARENTESIS_ABRE PARENTESIS_CIERRA
+                {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :}
             ;
 
 args ::= expresion
