@@ -1,6 +1,7 @@
 package generated;
 
 import java_cup.runtime.*;
+import src.ResultadoExpresion;
 import src.Simbolo;
 import src.SimboloArreglo;
 import src.SimboloFuncion;
