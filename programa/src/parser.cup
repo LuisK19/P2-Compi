@@ -80,9 +80,29 @@ parser code {:
         return simbolo;
     }
 
-    String tipoDeclarado(String nombre, int linea, int columna) {
+    String tipoDeVariable(String nombre, int linea, int columna) {
         Simbolo simbolo = buscarDeclarado(nombre, linea, columna);
         if (simbolo == null) {
+            return ResultadoExpresion.TIPO_ERROR;
+        }
+        if (simbolo.getCategoria().equals("arreglo")) {
+            reportarErrorSemantico("el arreglo '" + nombre + "' debe usarse con un indice", linea, columna);
+            return ResultadoExpresion.TIPO_ERROR;
+        }
+        if (simbolo.getCategoria().equals("funcion")) {
+            reportarErrorSemantico("'" + nombre + "' es una funcion y no puede usarse como variable", linea, columna);
+            return ResultadoExpresion.TIPO_ERROR;
+        }
+        return simbolo.getTipo();
+    }
+
+    String tipoDeArreglo(String nombre, int linea, int columna) {
+        Simbolo simbolo = buscarDeclarado(nombre, linea, columna);
+        if (simbolo == null) {
+            return ResultadoExpresion.TIPO_ERROR;
+        }
+        if (!simbolo.getCategoria().equals("arreglo")) {
+            reportarErrorSemantico("'" + nombre + "' no es un arreglo", linea, columna);
             return ResultadoExpresion.TIPO_ERROR;
         }
         return simbolo.getTipo();
@@ -223,9 +243,9 @@ declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:ta
 tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = tamano; :} ;
 
 asignacion ::= identificador:nombre ASIGNACION expresion FIN_SENT
-                {: parser.buscarDeclarado(nombre, nombreleft, nombreright); :}
+                {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
            | identificador:nombre CORCHETE_ABRE expr_arit CORCHETE_CIERRA ASIGNACION expresion FIN_SENT
-                {: parser.buscarDeclarado(nombre, nombreleft, nombreright); :}
+                {: parser.tipoDeArreglo(nombre, nombreleft, nombreright); :}
            ;
 
 expresion ::= expr_log:valor {: RESULT = valor; :} ;
@@ -284,7 +304,7 @@ potencia ::= atomo:valor                        {: RESULT = valor; :}
          ;
 
 atomo ::= literal:valor                                     {: RESULT = valor; :}
-      | identificador:nombre                                {: RESULT = new ResultadoExpresion(parser.tipoDeclarado(nombre, nombreleft, nombreright)); :}
+      | identificador:nombre                                {: RESULT = new ResultadoExpresion(parser.tipoDeVariable(nombre, nombreleft, nombreright)); :}
       | PARENTESIS_ABRE expresion:valor PARENTESIS_CIERRA   {: RESULT = valor; :}
       | negativo:valor                                      {: RESULT = valor; :}
       | incremento:valor                                    {: RESULT = valor; :}
@@ -294,7 +314,7 @@ atomo ::= literal:valor                                     {: RESULT = valor; :
       ;
 
 acceso_arreglo ::= identificador:nombre CORCHETE_ABRE expr_arit CORCHETE_CIERRA
-                   {: RESULT = new ResultadoExpresion(parser.tipoDeclarado(nombre, nombreleft, nombreright)); :}
+                   {: RESULT = new ResultadoExpresion(parser.tipoDeArreglo(nombre, nombreleft, nombreright)); :}
                ;
 
 negativo ::= negativo_int   {: RESULT = new ResultadoExpresion("int"); :}
@@ -304,8 +324,8 @@ negativo ::= negativo_int   {: RESULT = new ResultadoExpresion("int"); :}
 negativo_int ::= OP_MENOS literal_int ;
 negativo_float ::= OP_MENOS literal_float ;
 
-incremento ::= identificador:nombre OP_INC {: RESULT = new ResultadoExpresion(parser.tipoDeclarado(nombre, nombreleft, nombreright)); :} ;
-decremento ::= identificador:nombre OP_DEC {: RESULT = new ResultadoExpresion(parser.tipoDeclarado(nombre, nombreleft, nombreright)); :} ;
+incremento ::= identificador:nombre OP_INC {: RESULT = new ResultadoExpresion(parser.tipoDeVariable(nombre, nombreleft, nombreright)); :} ;
+decremento ::= identificador:nombre OP_DEC {: RESULT = new ResultadoExpresion(parser.tipoDeVariable(nombre, nombreleft, nombreright)); :} ;
 
 sentencia ::= declaracion
           | declaracion_arreglo
@@ -372,7 +392,7 @@ inicio_for ::= declaracion
 
 actualizacion_for ::= expresion
                   | identificador:nombre ASIGNACION expresion
-                    {: parser.buscarDeclarado(nombre, nombreleft, nombreright); :}
+                    {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
                   ;
 
 sentencia_return ::= RETURN expresion FIN_SENT ;
@@ -385,12 +405,12 @@ param_write ::= literal_str
             | literal_bool
             | literal_float
             | negativo
-            | identificador:nombre {: parser.buscarDeclarado(nombre, nombreleft, nombreright); :}
+            | identificador:nombre {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
             | acceso_arreglo
             ;
 
 sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA FIN_SENT
-                   {: parser.buscarDeclarado(nombre, nombreleft, nombreright); :}
+                   {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
                ;
 
 funcion ::= encabezado_funcion param_fun cuerpo_funcion {: parser.tabla.cerrarAlcance(); :}
