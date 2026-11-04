@@ -24,16 +24,18 @@ public class Analizador {
     /**
      * Inicia el análisis usando las rutas indicadas en los argumentos.
      *
-     * <p>El primer argumento es el archivo de entrada y el segundo es la ruta
-     * del reporte CSV. Si no se proporcionan, se usan rutas predeterminadas.
+     * <p>El primer argumento es el archivo de entrada, el segundo la ruta del
+     * reporte CSV de tokens y el tercero la ruta del reporte de la tabla de
+     * símbolos. Si no se proporcionan, se usan rutas predeterminadas.
      *
-     * @param args rutas opcionales del archivo de entrada y del reporte CSV
+     * @param args rutas opcionales de entrada y de los reportes
      */
     public static void main(String[] args) {
         usarSalidaUtf8();
 
-        String archivoEntrada = args.length > 0 ? args[0] : "tests/validos/basico.txt";
+        String archivoEntrada = args.length > 0 ? args[0] : "tests/validos/tabla_simbolos.txt";
         String archivoSalidaTokens = args.length > 1 ? args[1] : "tokens_encontrados.csv";
+        String archivoSalidaTabla = args.length > 2 ? args[2] : "tabla_simbolos.txt";
 
         if (!new File(archivoEntrada).exists()) {
             System.err.println("No se encontro el archivo de entrada: " + archivoEntrada);
@@ -48,7 +50,7 @@ public class Analizador {
             return;
         }
 
-        ejecutarAnalisisSintactico(archivoEntrada);
+        ejecutarAnalisisSintactico(archivoEntrada, archivoSalidaTabla);
     }
 
     /**
@@ -77,17 +79,17 @@ public class Analizador {
             Lexer analizadorLexico = new Lexer(lector);
             Symbol tokenActual;
 
-            escritor.write("id_token,lexema,categoria,tabla");
+            escritor.write("token,lexema,categoria");
             escritor.newLine();
 
-            while ((tokenActual = analizadorLexico.next_token()).sym != 0) {
-                String lexema = tokenActual.value == null ? "" : tokenActual.value.toString();
+            while ((tokenActual = analizadorLexico.next_token()).sym != sym.EOF) {
+                String nombreToken = sym.terminalNames[tokenActual.sym];
+                String lexema = tokenActual.value.toString();
                 String categoria = clasificarToken(tokenActual.sym);
 
-                escritor.write(tokenActual.sym + ","
+                escritor.write(nombreToken + ","
                         + escaparCampoCsv(lexema) + ","
-                        + escaparCampoCsv(categoria) + ","
-                        + escaparCampoCsv(tablaToken(tokenActual.sym)));
+                        + escaparCampoCsv(categoria));
                 escritor.newLine();
             }
 
@@ -186,28 +188,6 @@ public class Analizador {
     }
 
     /**
-     * Indica la tabla conceptual a la que pertenece el valor del token.
-     *
-     * @param idToken identificador definido por CUP
-     * @return nombre de la tabla o {@code "No aplica"}
-     */
-    private static String tablaToken(int idToken) {
-        switch (idToken) {
-            case sym.ID:
-                return "Tabla de identificadores";
-            case sym.ENTERO:
-            case sym.FLOTANTE:
-            case sym.CADENA:
-            case sym.CARACTER:
-            case sym.TRUE:
-            case sym.FALSE:
-                return "Tabla de literales";
-            default:
-                return "No aplica";
-        }
-    }
-
-    /**
      * Escapa un valor para incluirlo como campo entre comillas en un CSV.
      *
      * @param valor texto que se escribirá en el campo
@@ -218,17 +198,22 @@ public class Analizador {
     }
 
     /**
-     * Ejecuta el parser y comunica si la entrada cumple la gramática.
+     * Ejecuta el parser, escribe la tabla de símbolos y comunica si la entrada
+     * cumple la gramática.
      *
      * @param rutaEntrada ruta del archivo fuente que se analizará
+     * @param rutaTabla ruta del archivo donde se escribirá la tabla de símbolos
      */
-    public static void ejecutarAnalisisSintactico(String rutaEntrada) {
+    public static void ejecutarAnalisisSintactico(String rutaEntrada, String rutaTabla) {
         try (BufferedReader lector = Files.newBufferedReader(Path.of(rutaEntrada), StandardCharsets.UTF_8)) {
             Lexer analizadorLexico = new Lexer(lector);
             Parser analizadorSintactico = new Parser(analizadorLexico);
 
             System.out.println("\nIniciando analisis sintactico...");
             analizadorSintactico.parse();
+
+            analizadorSintactico.getTablaSimbolos().escribirReporte(rutaTabla);
+            System.out.println("Tabla de simbolos generada en -> " + rutaTabla);
 
             if (analizadorLexico.huboErroresLexicos()
                     || analizadorSintactico.huboErroresSintacticos()) {

@@ -13,13 +13,10 @@ import java_cup.runtime.*;
 %public
 
 %{
-    // Construye símbolos CUP con la ubicación actual, conservada en base cero.
     private boolean huboErroresLexicos = false;
     private StringBuilder erroresLexicos = new StringBuilder();
 
-    private Symbol symbol(int type) {
-        return new Symbol(type, yyline, yycolumn);
-    }
+    // Construye símbolos CUP con la ubicación actual, conservada en base cero.
     private Symbol symbol(int type, Object value) {
         return new Symbol(type, yyline, yycolumn, value);
     }

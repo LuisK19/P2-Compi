@@ -3,11 +3,10 @@
     "configurations": [
         {
             "type": "java",
-            "name": "App - basico.txt",
+            "name": "App - archivo por defecto",
             "request": "launch",
             "mainClass": "src.App",
-            "cwd": "${workspaceFolder}/programa",
-            "args": "tests/validos/basico.txt"
+            "cwd": "${workspaceFolder}/programa"
         },
         {
             "type": "java",

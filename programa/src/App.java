@@ -81,6 +81,11 @@ public class App {
                 "generated/Lexer.java",
                 "generated/Parser.java",
                 "generated/sym.java",
+                "src/Simbolo.java",
+                "src/SimboloArreglo.java",
+                "src/SimboloFuncion.java",
+                "src/Alcance.java",
+                "src/TablaSimbolos.java",
                 "src/Analizador.java");
 
         if (resultado != 0) {

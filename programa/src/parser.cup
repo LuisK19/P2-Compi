@@ -1,13 +1,19 @@
 package generated;
 
 import java_cup.runtime.*;
+import src.Simbolo;
+import src.SimboloArreglo;
+import src.SimboloFuncion;
+import src.TablaSimbolos;
 
-/* Código auxiliar del parser: conserva el lexer como fuente de tokens y adapta
- * los errores de CUP para incluir ubicación y lexema 
+/* Código auxiliar del parser: conserva el lexer como fuente de tokens, adapta
+ * los errores de CUP para incluir ubicación y lexema, y guarda la tabla de símbolos
  */
 parser code {:
     Lexer analizadorLexico;
     private boolean huboErroresSintacticos = false;
+    TablaSimbolos tabla = new TablaSimbolos();
+    SimboloFuncion funcionActual;
 
     public Parser(Lexer analizadorLexico) {
         this.analizadorLexico = analizadorLexico;
@@ -17,8 +23,8 @@ parser code {:
         huboErroresSintacticos = true;
         String textoError = "Error de sintaxis";
         
-        if (infoAdicional instanceof java_cup.runtime.Symbol) {
-            java_cup.runtime.Symbol token = (java_cup.runtime.Symbol) infoAdicional;
+        if (infoAdicional instanceof Symbol) {
+            Symbol token = (Symbol) infoAdicional;
             
             if (token.left >= 0) {
                 textoError += " en la linea " + (token.left + 1); 
@@ -39,6 +45,24 @@ parser code {:
 
     public boolean huboErroresSintacticos() {
         return huboErroresSintacticos;
+    }
+
+    public TablaSimbolos getTablaSimbolos() {
+        return tabla;
+    }
+
+    // En los metodos siguientes la linea y columna llegan desde 0; en la tabla se guardan desde 1.
+    void agregarSimbolo(String nombre, String categoria, String tipo, int linea, int columna) {
+        tabla.agregar(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
+    }
+
+    void agregarArreglo(String nombre, String tipo, int tamano, int linea, int columna) {
+        tabla.agregar(new SimboloArreglo(nombre, tipo, tamano, linea + 1, columna + 1));
+    }
+
+    void agregarFuncion(String nombre, String tipoRetorno, int linea, int columna) {
+        funcionActual = new SimboloFuncion(nombre, tipoRetorno, linea + 1, columna + 1);
+        tabla.agregar(funcionActual);
     }
 
     public void report_fatal_error(String mensaje, Object infoAdicional) {
@@ -77,27 +101,36 @@ terminal String CADENA;
 terminal String CARACTER;
 
 /*No terminales*/
-non terminal programa, globales_opc, funciones_opc, principal;
-non terminal funcion, tipo_retorno, params, param_fun, llamada_fun, args;
-non terminal declaracion, declaracion_arreglo, asignacion, bloque, lista_lineas, linea_bloque, sentencia;
-non terminal tamano_arreglo, valores_arreglo_int, valor_arreglo_int, valores_arreglo_float, valor_arreglo_float;
+non terminal programa, globales_opc, funciones_opc, principal, encabezado_principal;
+non terminal funcion, encabezado_funcion, cuerpo_funcion, params, parametro, param_fun, llamada_fun, args;
+non terminal declaracion, declaracion_arreglo, asignacion, bloque, inicio_bloque, lista_lineas, linea_bloque, sentencia;
+non terminal valores_arreglo_int, valor_arreglo_int, valores_arreglo_float, valor_arreglo_float;
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
-non terminal sentencia_while, sentencia_for, encabezado_for, inicio_for, actualizacion_for, condicion;
+non terminal sentencia_while, sentencia_for, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
 non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
 non terminal expresion, expr_log, operacion_log, operando_log;
 non terminal expr_rel, operacion_rel, operando_rel, operando_igualdad, op_orden, op_igualdad;
 non terminal expr_arit, term_mul_div, term_sum_res, potencia, atomo, acceso_arreglo, incremento, decremento;
 non terminal negativo, negativo_int, negativo_float;
-non terminal identificador, tipo, literal, literal_int, literal_float, literal_bool, literal_char, literal_str;
+non terminal literal, literal_float, literal_bool, literal_char, literal_str;
+
+/* No terminales que devuelven un valor para la tabla de símbolos */
+non terminal String identificador, tipo, tipo_retorno;
+non terminal Integer literal_int, tamano_arreglo;
 
 /* Simbolo inicial */
 start with programa;
 
 /* Producciones para identificadores, tipos y valores literales. */
 
-identificador ::= ID ;
+identificador ::= ID:nombre {: RESULT = nombre; :} ;
 
-tipo ::= INT | FLOAT | BOOL | CHAR | STR ;
+tipo ::= INT   {: RESULT = "int"; :}
+     | FLOAT {: RESULT = "float"; :}
+     | BOOL  {: RESULT = "bool"; :}
+     | CHAR  {: RESULT = "char"; :}
+     | STR   {: RESULT = "str"; :}
+     ;
 
 literal ::= literal_int
         | literal_float
@@ -106,7 +139,7 @@ literal ::= literal_int
         | literal_str
         ;
 
-literal_int   ::= ENTERO ;
+literal_int   ::= ENTERO:valor {: RESULT = valor; :} ;
 literal_float ::= FLOTANTE ;
 literal_bool  ::= TRUE | FALSE ;
 literal_char  ::= CARACTER ;
@@ -128,16 +161,21 @@ valor_arreglo_float ::= literal_float
                     | negativo_float
                     ;
 
-declaracion ::= VAL tipo identificador FIN_SENT
-            | VAL tipo identificador ASIGNACION expresion FIN_SENT
+declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
+                {: parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright); :}
+            | VAL tipo:tipoDato identificador:nombre ASIGNACION expresion FIN_SENT
+                {: parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright); :}
             ;
 
-declaracion_arreglo ::= VAL tipo identificador tamano_arreglo FIN_SENT
-                    | VAL tipo identificador tamano_arreglo ASIGNACION LLAVE_ABRE valores_arreglo_int LLAVE_CIERRA FIN_SENT
-                    | VAL tipo identificador tamano_arreglo ASIGNACION LLAVE_ABRE valores_arreglo_float LLAVE_CIERRA FIN_SENT
+declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano FIN_SENT
+                        {: parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
+                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_int LLAVE_CIERRA FIN_SENT
+                        {: parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
+                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_float LLAVE_CIERRA FIN_SENT
+                        {: parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
                     ;
 
-tamano_arreglo ::= CORCHETE_ABRE literal_int CORCHETE_CIERRA ;
+tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = tamano; :} ;
 
 asignacion ::= identificador ASIGNACION expresion FIN_SENT
            | identificador CORCHETE_ABRE expr_arit CORCHETE_CIERRA ASIGNACION expresion FIN_SENT
@@ -246,9 +284,11 @@ else_opc ::= sentencia_else
 sentencia_elif ::= ELIF condicion bloque ;
 sentencia_else ::= ELSE bloque ;
 
-bloque ::= LLAVE_ABRE lista_lineas LLAVE_CIERRA
-       | LLAVE_ABRE error LLAVE_CIERRA
+bloque ::= inicio_bloque lista_lineas LLAVE_CIERRA {: parser.tabla.cerrarAlcance(); :}
+       | inicio_bloque error LLAVE_CIERRA {: parser.tabla.cerrarAlcance(); :}
        ;
+
+inicio_bloque ::= LLAVE_ABRE:llave {: parser.tabla.abrirAlcance("bloque linea " + (llaveleft + 1)); :} ;
 
 lista_lineas ::= linea_bloque
              | linea_bloque lista_lineas
@@ -267,7 +307,9 @@ estructura_control ::= sentencia_if
 
 sentencia_while ::= WHILE condicion bloque ;
 
-sentencia_for ::= FOR encabezado_for bloque ;
+sentencia_for ::= apertura_for encabezado_for bloque {: parser.tabla.cerrarAlcance(); :} ;
+
+apertura_for ::= FOR:palabraFor {: parser.tabla.abrirAlcance("for linea " + (palabraForleft + 1)); :} ;
 
 encabezado_for ::= PARENTESIS_ABRE inicio_for expresion FIN_SENT actualizacion_for PARENTESIS_CIERRA ;
 
@@ -294,13 +336,31 @@ param_write ::= literal_str
 
 sentencia_read ::= READ PARENTESIS_ABRE identificador PARENTESIS_CIERRA FIN_SENT ;
 
-funcion ::= tipo_retorno identificador param_fun bloque ;
+funcion ::= encabezado_funcion param_fun cuerpo_funcion {: parser.tabla.cerrarAlcance(); :} ;
 
-tipo_retorno ::= INT | FLOAT | CHAR | BOOL ;
+encabezado_funcion ::= tipo_retorno:tipoRetorno identificador:nombre
+                       {: parser.agregarFuncion(nombre, tipoRetorno, nombreleft, nombreright);
+                          parser.tabla.abrirAlcance(nombre); :}
+                   ;
 
-params ::= tipo identificador
-       | tipo identificador COMA params
+cuerpo_funcion ::= LLAVE_ABRE lista_lineas LLAVE_CIERRA
+               | LLAVE_ABRE error LLAVE_CIERRA
+               ;
+
+tipo_retorno ::= INT   {: RESULT = "int"; :}
+             | FLOAT {: RESULT = "float"; :}
+             | CHAR  {: RESULT = "char"; :}
+             | BOOL  {: RESULT = "bool"; :}
+             ;
+
+params ::= parametro
+       | parametro COMA params
        ;
+
+parametro ::= tipo:tipoDato identificador:nombre
+              {: parser.agregarSimbolo(nombre, "parametro", tipoDato, nombreleft, nombreright);
+                 parser.funcionActual.agregarTipoParametro(tipoDato); :}
+          ;
 
 param_fun ::= PARENTESIS_ABRE params PARENTESIS_CIERRA
           | PARENTESIS_ABRE PARENTESIS_CIERRA
@@ -314,7 +374,12 @@ args ::= expresion
      | expresion COMA args
      ;
 
-principal ::= VOID PRINCIPAL bloque ;
+principal ::= encabezado_principal cuerpo_funcion {: parser.tabla.cerrarAlcance(); :} ;
+
+encabezado_principal ::= VOID PRINCIPAL:palabraPrincipal
+                         {: parser.agregarFuncion("principal", "void", palabraPrincipalleft, palabraPrincipalright);
+                            parser.tabla.abrirAlcance("principal"); :}
+                     ;
 
 globales_opc ::= declaracion globales_opc
              | declaracion_arreglo globales_opc

@@ -1,5 +1,6 @@
 out/
 *.class
 tokens_encontrados.csv
+tabla_simbolos.txt
 generated/
 correr_pruebas.ps1
