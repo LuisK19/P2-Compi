@@ -1,4 +1,4 @@
-void principal ¿:
+void principal є: :э ¿:
   val int primero Ͱ »
   val int segundo Ͱ + »
   val int correcto Ͱ 5 »

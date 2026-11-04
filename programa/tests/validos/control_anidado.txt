@@ -1,4 +1,4 @@
-void principal ¿:
+void principal є: :э ¿:
   val int i Ͱ 0 »
   while є: ʃ: i :ʅ < ʃ: 10 :ʅ :э ¿:
     if є: ʃ: i :ʅ == ʃ: 5 :ʅ :э ¿:

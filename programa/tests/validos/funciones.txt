@@ -10,7 +10,7 @@ char letra є: :э ¿:
 bool es_mayor є: int a, int b :э ¿:
   return ʃ: a :ʅ > ʃ: b :ʅ »
 :?
-void principal ¿:
+void principal є: :э ¿:
   val int x Ͱ sumar є: 1, 2 :э »
   x++ »
   x-- »

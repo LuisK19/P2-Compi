@@ -77,7 +77,7 @@ COMENTARIO_SIN_CERRAR = "¡"[^!]*
 "float"         { return symbol(sym.FLOAT, yytext()); }
 "bool"          { return symbol(sym.BOOL, yytext()); }
 "char"          { return symbol(sym.CHAR, yytext()); }
-"str"           { return symbol(sym.STR, yytext()); }
+"string"        { return symbol(sym.STR, yytext()); }
 "true"          { return symbol(sym.TRUE, yytext()); }
 "false"         { return symbol(sym.FALSE, yytext()); }
 "if"            { return symbol(sym.IF, yytext()); }
@@ -100,8 +100,8 @@ COMENTARIO_SIN_CERRAR = "¡"[^!]*
 "*"             { return symbol(sym.OP_MULT, yytext()); }
 "//"            { return symbol(sym.OP_DIV_ENT, yytext()); }
 "/"             { return symbol(sym.OP_DIV, yytext()); }
-"%"             { return symbol(sym.OP_MOD, yytext()); }
-"^"             { return symbol(sym.OP_POT, yytext()); }
+"mod"             { return symbol(sym.OP_MOD, yytext()); }
+"pot"             { return symbol(sym.OP_POT, yytext()); }
 
 /* Operadores relacionales */
 "<="            { return symbol(sym.OP_MENIG, yytext()); }

@@ -129,7 +129,7 @@ tipo ::= INT   {: RESULT = "int"; :}
      | FLOAT {: RESULT = "float"; :}
      | BOOL  {: RESULT = "bool"; :}
      | CHAR  {: RESULT = "char"; :}
-     | STR   {: RESULT = "str"; :}
+     | STR   {: RESULT = "string"; :}
      ;
 
 literal ::= literal_int
@@ -376,7 +376,7 @@ args ::= expresion
 
 principal ::= encabezado_principal cuerpo_funcion {: parser.tabla.cerrarAlcance(); :} ;
 
-encabezado_principal ::= VOID PRINCIPAL:palabraPrincipal
+encabezado_principal ::= VOID PRINCIPAL:palabraPrincipal PARENTESIS_ABRE PARENTESIS_CIERRA
                          {: parser.agregarFuncion("principal", "void", palabraPrincipalleft, palabraPrincipalright);
                             parser.tabla.abrirAlcance("principal"); :}
                      ;

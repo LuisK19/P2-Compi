@@ -1,4 +1,4 @@
-void principal ¿:
+void principal є: :э ¿:
   for val int i Ͱ 0 » , є: ʃ: i :ʅ < ʃ: 5 :ʅ :э , i++ » ¿:
     write є: i :э »
   :?

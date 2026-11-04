@@ -1,4 +1,4 @@
-void principal ¿:
+void principal є: :э ¿:
   val int a Ͱ 1 »
   val int b Ͱ 2 »
   val bool r1 Ͱ ʃ: a :ʅ < ʃ: b :ʅ »

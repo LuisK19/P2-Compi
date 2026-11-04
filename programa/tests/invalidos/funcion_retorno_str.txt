@@ -1,6 +1,0 @@
-str saludo є: :э ¿:
-  return "hola" »
-:?
-void principal ¿:
-  val int x Ͱ 1 »
-:?
