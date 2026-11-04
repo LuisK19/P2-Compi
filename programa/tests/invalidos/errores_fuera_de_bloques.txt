@@ -1,0 +1,9 @@
+val float gf Ͱ -0.0000010 »
+val int gi Ͱ 010 »
+val int correcta Ͱ 5 »
+float f є: int a, char b ¿:
+  return 1.5 »
+:?
+void principal є: :э ¿:
+  return »
+:?

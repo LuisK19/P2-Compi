@@ -65,6 +65,11 @@ parser code {:
         tabla.agregar(funcionActual);
     }
 
+    // Cantidad de tokens que deben leerse bien despues de un error para reportar el siguiente.
+    public int error_sync_size() {
+        return 1;
+    }
+
     public void report_fatal_error(String mensaje, Object infoAdicional) {
         report_error("ERROR FATAL: " + mensaje, infoAdicional);
     }
@@ -108,14 +113,14 @@ non terminal valores_arreglo_int, valor_arreglo_int, valores_arreglo_float, valo
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
 non terminal sentencia_while, sentencia_for, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
 non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
-non terminal expresion, expr_log, operacion_log, operando_log;
+non terminal expresion, expr_log, operacion_log, negacion, operando_log;
 non terminal expr_rel, operacion_rel, operando_rel, operando_igualdad, op_orden, op_igualdad;
 non terminal expr_arit, term_mul_div, term_sum_res, potencia, atomo, acceso_arreglo, incremento, decremento;
 non terminal negativo, negativo_int, negativo_float;
 non terminal literal, literal_float, literal_bool, literal_char, literal_str;
 
 /* No terminales que devuelven un valor para la tabla de símbolos */
-non terminal String identificador, tipo, tipo_retorno;
+non terminal String identificador, tipo;
 non terminal Integer literal_int, tamano_arreglo;
 
 /* Simbolo inicial */
@@ -189,12 +194,13 @@ expr_log ::= operacion_log
 
 operacion_log ::= operando_log OP_AND operando_log
               | operando_log OP_OR operando_log
-              | OP_NOT operando_log
+              | negacion
               ;
 
-operando_log ::= PARENTESIS_ABRE expr_arit PARENTESIS_CIERRA
-             | PARENTESIS_ABRE operacion_rel PARENTESIS_CIERRA
-             | PARENTESIS_ABRE operacion_log PARENTESIS_CIERRA
+negacion ::= OP_NOT operando_log ;
+
+operando_log ::= PARENTESIS_ABRE expresion PARENTESIS_CIERRA
+             | negacion
              ;
 
 expr_rel ::= operacion_rel
@@ -232,12 +238,12 @@ term_sum_res ::= potencia
              ;
 
 potencia ::= atomo
-         | potencia OP_POT atomo
+         | atomo OP_POT potencia
          ;
 
 atomo ::= literal
       | identificador
-      | PARENTESIS_ABRE expr_arit PARENTESIS_CIERRA
+      | PARENTESIS_ABRE expresion PARENTESIS_CIERRA
       | negativo
       | incremento
       | decremento
@@ -269,7 +275,9 @@ sentencia ::= declaracion
           | sentencia_break
           ;
 
-condicion ::= PARENTESIS_ABRE expresion PARENTESIS_CIERRA ;
+condicion ::= PARENTESIS_ABRE expresion PARENTESIS_CIERRA
+          | PARENTESIS_ABRE error PARENTESIS_CIERRA
+          ;
 
 sentencia_if ::= IF condicion bloque elif_opc else_opc ;
 
@@ -298,6 +306,7 @@ linea_bloque ::= sentencia
              | estructura_control
              | bloque
              | error FIN_SENT
+             | error bloque
              ;
 
 estructura_control ::= sentencia_if
@@ -317,8 +326,7 @@ inicio_for ::= declaracion
            | asignacion
            ;
 
-actualizacion_for ::= incremento
-                  | decremento
+actualizacion_for ::= expresion
                   | identificador ASIGNACION expresion
                   ;
 
@@ -331,14 +339,18 @@ param_write ::= literal_str
             | literal_int
             | literal_bool
             | literal_float
+            | negativo
             | identificador
+            | acceso_arreglo
             ;
 
 sentencia_read ::= READ PARENTESIS_ABRE identificador PARENTESIS_CIERRA FIN_SENT ;
 
-funcion ::= encabezado_funcion param_fun cuerpo_funcion {: parser.tabla.cerrarAlcance(); :} ;
+funcion ::= encabezado_funcion param_fun cuerpo_funcion {: parser.tabla.cerrarAlcance(); :}
+        | encabezado_funcion error cuerpo_funcion {: parser.tabla.cerrarAlcance(); :}
+        ;
 
-encabezado_funcion ::= tipo_retorno:tipoRetorno identificador:nombre
+encabezado_funcion ::= tipo:tipoRetorno identificador:nombre
                        {: parser.agregarFuncion(nombre, tipoRetorno, nombreleft, nombreright);
                           parser.tabla.abrirAlcance(nombre); :}
                    ;
@@ -346,12 +358,6 @@ encabezado_funcion ::= tipo_retorno:tipoRetorno identificador:nombre
 cuerpo_funcion ::= LLAVE_ABRE lista_lineas LLAVE_CIERRA
                | LLAVE_ABRE error LLAVE_CIERRA
                ;
-
-tipo_retorno ::= INT   {: RESULT = "int"; :}
-             | FLOAT {: RESULT = "float"; :}
-             | CHAR  {: RESULT = "char"; :}
-             | BOOL  {: RESULT = "bool"; :}
-             ;
 
 params ::= parametro
        | parametro COMA params
@@ -383,6 +389,7 @@ encabezado_principal ::= VOID PRINCIPAL:palabraPrincipal PARENTESIS_ABRE PARENTE
 
 globales_opc ::= declaracion globales_opc
              | declaracion_arreglo globales_opc
+             | error FIN_SENT globales_opc
              |
              ;
 
@@ -390,4 +397,4 @@ funciones_opc ::= funcion funciones_opc
               |
               ;
 
-programa ::= globales_opc funciones_opc principal;
+programa ::= globales_opc funciones_opc principal funciones_opc ;
