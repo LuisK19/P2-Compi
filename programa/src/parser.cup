@@ -1,13 +1,19 @@
 package generated;
 
 import java_cup.runtime.*;
+import src.Simbolo;
+import src.SimboloArreglo;
+import src.SimboloFuncion;
+import src.TablaSimbolos;
 
-/* Código auxiliar del parser: conserva el lexer como fuente de tokens y adapta
- * los errores de CUP para incluir ubicación y lexema 
+/* Código auxiliar del parser: conserva el lexer como fuente de tokens, adapta
+ * los errores de CUP para incluir ubicación y lexema, y guarda la tabla de símbolos
  */
 parser code {:
     Lexer analizadorLexico;
     private boolean huboErroresSintacticos = false;
+    TablaSimbolos tabla = new TablaSimbolos();
+    SimboloFuncion funcionActual;
 
     public Parser(Lexer analizadorLexico) {
         this.analizadorLexico = analizadorLexico;
@@ -17,8 +23,8 @@ parser code {:
         huboErroresSintacticos = true;
         String textoError = "Error de sintaxis";
         
-        if (infoAdicional instanceof java_cup.runtime.Symbol) {
-            java_cup.runtime.Symbol token = (java_cup.runtime.Symbol) infoAdicional;
+        if (infoAdicional instanceof Symbol) {
+            Symbol token = (Symbol) infoAdicional;
             
             if (token.left >= 0) {
                 textoError += " en la linea " + (token.left + 1); 
@@ -41,6 +47,29 @@ parser code {:
         return huboErroresSintacticos;
     }
 
+    public TablaSimbolos getTablaSimbolos() {
+        return tabla;
+    }
+
+    // En los metodos siguientes la linea y columna llegan desde 0; en la tabla se guardan desde 1.
+    void agregarSimbolo(String nombre, String categoria, String tipo, int linea, int columna) {
+        tabla.agregar(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
+    }
+
+    void agregarArreglo(String nombre, String tipo, int tamano, int linea, int columna) {
+        tabla.agregar(new SimboloArreglo(nombre, tipo, tamano, linea + 1, columna + 1));
+    }
+
+    void agregarFuncion(String nombre, String tipoRetorno, int linea, int columna) {
+        funcionActual = new SimboloFuncion(nombre, tipoRetorno, linea + 1, columna + 1);
+        tabla.agregar(funcionActual);
+    }
+
+    // Cantidad de tokens que deben leerse bien despues de un error para reportar el siguiente.
+    public int error_sync_size() {
+        return 1;
+    }
+
     public void report_fatal_error(String mensaje, Object infoAdicional) {
         report_error("ERROR FATAL: " + mensaje, infoAdicional);
     }
@@ -53,8 +82,8 @@ scan with {: return analizadorLexico.next_token(); :};
 terminal VAL, INT, FLOAT, BOOL, CHAR, STR, TRUE, FALSE;
 terminal IF, ELIF, ELSE, WHILE, FOR, RETURN, BREAK, WRITE, READ, VOID, PRINCIPAL;
 
-/* Operadores aritméticos, unarios, relacionales y lógicos. */
-terminal OP_SUMA, OP_RESTA, OP_MULT, OP_DIV, OP_DIV_ENT, OP_MOD, OP_POT;
+/* Operadores aritméticos y unarios */
+terminal OP_SUMA, OP_MENOS, OP_MULT, OP_DIV, OP_DIV_ENT, OP_MOD, OP_POT;
 terminal OP_INC, OP_DEC;
 
 /* Operadores Relacionales */
@@ -64,9 +93,9 @@ terminal OP_MENOR, OP_MAYOR, OP_MENIG, OP_MAYIG, OP_IGUAL, OP_DIFER;
 terminal OP_AND, OP_OR, OP_NOT;
 
 /* Delimitadores y Simbolos Especiales */
-terminal BLOQUE_ABRE, BLOQUE_CIERRA;
-terminal INDICE_ABRE, INDICE_CIERRA;
-terminal PAREN_ABRE, PAREN_CIERRA;
+terminal LLAVE_ABRE, LLAVE_CIERRA;
+terminal CORCHETE_ABRE, CORCHETE_CIERRA;
+terminal PARENTESIS_ABRE, PARENTESIS_CIERRA;
 terminal ASIGNACION, FIN_SENT, COMA;
 
 /* Tokens con valor */
@@ -77,204 +106,295 @@ terminal String CADENA;
 terminal String CARACTER;
 
 /*No terminales*/
-non terminal programa, globalesOpc, funcionesOpc, principal;
-non terminal funcion, params, paramFun, llamadaFun, args;
-non terminal declaracion, declaracionList, asignacion, lineaBloque, bloque, sentencia;
-non terminal literalListInt, literalListFloat;
-non terminal estructuraControl, sentencia_if, elifOpc, elseOpc, sentencia_elif, sentencia_else;
-non terminal sentencia_while, sentencia_for, condicionFor, condicion;
-non terminal sentencia_return, sentencia_break, sentencia_write, paramWrite, sentencia_read;
-non terminal expresion, exprLog, exprLogAnd, exprLogNot, exprRel, opRel;
-non terminal exprArit, termMulDiv, termSumRes, potencia, atomo, accesoList, negativo, unarioSuma, unarioResta;
-non terminal identificador, tipo, literal, literalInt, literalFloat, literalBool, literalChar, literalStr;
+non terminal programa, globales_opc, funciones_opc, principal, encabezado_principal;
+non terminal funcion, encabezado_funcion, cuerpo_funcion, params, parametro, param_fun, llamada_fun, args;
+non terminal declaracion, declaracion_arreglo, asignacion, bloque, inicio_bloque, lista_lineas, linea_bloque, sentencia;
+non terminal valores_arreglo_int, valor_arreglo_int, valores_arreglo_float, valor_arreglo_float;
+non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
+non terminal sentencia_while, sentencia_for, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
+non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
+non terminal expresion, expr_log, operacion_log, negacion, operando_log;
+non terminal expr_rel, operacion_rel, operando_rel, operando_igualdad, op_orden, op_igualdad;
+non terminal expr_arit, term_mul_div, term_sum_res, potencia, atomo, acceso_arreglo, incremento, decremento;
+non terminal negativo, negativo_int, negativo_float;
+non terminal literal, literal_float, literal_bool, literal_char, literal_str;
+
+/* No terminales que devuelven un valor para la tabla de símbolos */
+non terminal String identificador, tipo;
+non terminal Integer literal_int, tamano_arreglo;
 
 /* Simbolo inicial */
 start with programa;
 
 /* Producciones para identificadores, tipos y valores literales. */
 
-identificador ::= ID ;
+identificador ::= ID:nombre {: RESULT = nombre; :} ;
 
-tipo ::= INT | FLOAT | BOOL | CHAR | STR ;
+tipo ::= INT   {: RESULT = "int"; :}
+     | FLOAT {: RESULT = "float"; :}
+     | BOOL  {: RESULT = "bool"; :}
+     | CHAR  {: RESULT = "char"; :}
+     | STR   {: RESULT = "string"; :}
+     ;
 
-literal ::= literalInt
-        | literalFloat
-        | literalBool
-        | literalChar
-        | literalStr
+literal ::= literal_int
+        | literal_float
+        | literal_bool
+        | literal_char
+        | literal_str
         ;
 
-literalInt   ::= ENTERO ;
-literalFloat ::= FLOTANTE ;
-literalBool  ::= TRUE | FALSE ;
-literalChar  ::= CARACTER ;
-literalStr   ::= CADENA ;
+literal_int   ::= ENTERO:valor {: RESULT = valor; :} ;
+literal_float ::= FLOTANTE ;
+literal_bool  ::= TRUE | FALSE ;
+literal_char  ::= CARACTER ;
+literal_str   ::= CADENA ;
 
-literalListInt ::= literalInt
-               | literalInt COMA literalListInt
-               ;
+valores_arreglo_int ::= valor_arreglo_int
+                    | valor_arreglo_int COMA valores_arreglo_int
+                    ;
 
-literalListFloat ::= literalFloat
-                   | literalFloat COMA literalListFloat
-                   ;
+valor_arreglo_int ::= literal_int
+                  | negativo_int
+                  ;
 
-declaracion ::= VAL tipo identificador FIN_SENT
-            | VAL tipo identificador ASIGNACION expresion FIN_SENT
+valores_arreglo_float ::= valor_arreglo_float
+                      | valor_arreglo_float COMA valores_arreglo_float
+                      ;
+
+valor_arreglo_float ::= literal_float
+                    | negativo_float
+                    ;
+
+declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
+                {: parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright); :}
+            | VAL tipo:tipoDato identificador:nombre ASIGNACION expresion FIN_SENT
+                {: parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright); :}
             ;
 
-declaracionList ::= VAL tipo identificador ASIGNACION BLOQUE_ABRE literalListInt BLOQUE_CIERRA FIN_SENT
-                | VAL tipo identificador ASIGNACION BLOQUE_ABRE literalListFloat BLOQUE_CIERRA FIN_SENT
-                ;
+declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano FIN_SENT
+                        {: parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
+                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_int LLAVE_CIERRA FIN_SENT
+                        {: parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
+                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_float LLAVE_CIERRA FIN_SENT
+                        {: parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
+                    ;
+
+tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = tamano; :} ;
 
 asignacion ::= identificador ASIGNACION expresion FIN_SENT
-          | identificador INDICE_ABRE exprArit INDICE_CIERRA ASIGNACION expresion FIN_SENT
-          ;
-
-expresion ::= exprLog ;
-
-exprLog ::= exprLog OP_OR exprLogAnd
-        | exprLogAnd
-        ;
-
-exprLogAnd ::= exprLogAnd OP_AND exprLogNot
-           | exprLogNot
+           | identificador CORCHETE_ABRE expr_arit CORCHETE_CIERRA ASIGNACION expresion FIN_SENT
            ;
 
-exprLogNot ::= OP_NOT exprLogNot
-           | exprRel
-           ;
+expresion ::= expr_log ;
 
-exprRel ::= INDICE_ABRE exprArit INDICE_CIERRA opRel INDICE_ABRE exprArit INDICE_CIERRA
-        | exprArit
-        ;
-
-opRel ::= OP_MENOR | OP_MAYOR | OP_MENIG | OP_MAYIG | OP_IGUAL | OP_DIFER ;
-
-exprArit ::= termMulDiv
-         | exprArit OP_MOD termMulDiv
+expr_log ::= operacion_log
+         | expr_rel
          ;
 
-termMulDiv ::= termSumRes
-           | termMulDiv OP_MULT termSumRes
-           | termMulDiv OP_DIV termSumRes
-           | termMulDiv OP_DIV_ENT termSumRes
-           ;
+operacion_log ::= operando_log OP_AND operando_log
+              | operando_log OP_OR operando_log
+              | negacion
+              ;
 
-termSumRes ::= potencia
-           | termSumRes OP_SUMA potencia
-           | termSumRes OP_RESTA potencia
-           ;
+negacion ::= OP_NOT operando_log ;
+
+operando_log ::= PARENTESIS_ABRE expresion PARENTESIS_CIERRA
+             | negacion
+             ;
+
+expr_rel ::= operacion_rel
+         | expr_arit
+         ;
+
+operacion_rel ::= operando_rel op_orden operando_rel
+              | operando_igualdad op_igualdad operando_igualdad
+              ;
+
+operando_rel ::= CORCHETE_ABRE expr_arit CORCHETE_CIERRA ;
+
+operando_igualdad ::= operando_rel
+                  | CORCHETE_ABRE operacion_rel CORCHETE_CIERRA
+                  | CORCHETE_ABRE operacion_log CORCHETE_CIERRA
+                  ;
+
+op_orden ::= OP_MENOR | OP_MAYOR | OP_MENIG | OP_MAYIG ;
+
+op_igualdad ::= OP_IGUAL | OP_DIFER ;
+
+expr_arit ::= term_mul_div
+          | expr_arit OP_MOD term_mul_div
+          ;
+
+term_mul_div ::= term_sum_res
+             | term_mul_div OP_MULT term_sum_res
+             | term_mul_div OP_DIV term_sum_res
+             | term_mul_div OP_DIV_ENT term_sum_res
+             ;
+
+term_sum_res ::= potencia
+             | term_sum_res OP_SUMA potencia
+             | term_sum_res OP_MENOS potencia
+             ;
 
 potencia ::= atomo
-         | potencia OP_POT atomo
+         | atomo OP_POT potencia
          ;
 
 atomo ::= literal
       | identificador
-      | PAREN_ABRE expresion PAREN_CIERRA
+      | PARENTESIS_ABRE expresion PARENTESIS_CIERRA
       | negativo
-      | unarioSuma
-      | unarioResta
-      | llamadaFun
-      | accesoList
+      | incremento
+      | decremento
+      | llamada_fun
+      | acceso_arreglo
       ;
 
-accesoList ::= identificador INDICE_ABRE exprArit INDICE_CIERRA ;
+acceso_arreglo ::= identificador CORCHETE_ABRE expr_arit CORCHETE_CIERRA ;
 
-negativo ::= OP_RESTA literalInt
-         | OP_RESTA literalFloat
+negativo ::= negativo_int
+         | negativo_float
          ;
 
-unarioSuma  ::= identificador OP_INC ;
-unarioResta ::= identificador OP_DEC ;
+negativo_int ::= OP_MENOS literal_int ;
+negativo_float ::= OP_MENOS literal_float ;
+
+incremento ::= identificador OP_INC ;
+decremento ::= identificador OP_DEC ;
 
 sentencia ::= declaracion
-          | declaracionList
+          | declaracion_arreglo
           | asignacion
-          | expresion FIN_SENT
+          | incremento FIN_SENT
+          | decremento FIN_SENT
+          | llamada_fun FIN_SENT
           | sentencia_write
           | sentencia_read
           | sentencia_return
           | sentencia_break
           ;
 
-condicion ::= PAREN_ABRE expresion PAREN_CIERRA ;
+condicion ::= PARENTESIS_ABRE expresion PARENTESIS_CIERRA
+          | PARENTESIS_ABRE error PARENTESIS_CIERRA
+          ;
 
-sentencia_if ::= IF condicion BLOQUE_ABRE bloque BLOQUE_CIERRA elifOpc elseOpc ;
+sentencia_if ::= IF condicion bloque elif_opc else_opc ;
 
-elifOpc ::= sentencia_elif elifOpc
-        | 
-        ;
-
-elseOpc ::= sentencia_else
-        |
-        ;
-
-sentencia_elif ::= ELIF condicion BLOQUE_ABRE bloque BLOQUE_CIERRA ;
-sentencia_else ::= ELSE BLOQUE_ABRE bloque BLOQUE_CIERRA ;
-
-bloque ::= lineaBloque
-       | lineaBloque bloque
-       ;
-
-lineaBloque ::= sentencia
-            | estructuraControl
-            | error FIN_SENT
-            | error BLOQUE_CIERRA
-            ;
-
-estructuraControl ::= sentencia_if
-                  | sentencia_while
-                  | sentencia_for
-                  ;
-
-sentencia_while ::= WHILE condicion BLOQUE_ABRE bloque BLOQUE_CIERRA ;
-
-sentencia_for ::= FOR condicionFor BLOQUE_ABRE bloque BLOQUE_CIERRA ;
-
-condicionFor ::= declaracion COMA condicion COMA sentencia ;
-
-sentencia_return ::= RETURN expresion FIN_SENT ;
-sentencia_break  ::= BREAK FIN_SENT ;
-
-sentencia_write ::= WRITE PAREN_ABRE paramWrite PAREN_CIERRA FIN_SENT ;
-
-paramWrite ::= literalStr
-           | literalInt
-           | literalBool
-           | literalFloat
-           | identificador
-           ;
-
-sentencia_read ::= READ PAREN_ABRE identificador PAREN_CIERRA FIN_SENT ;
-
-funcion ::= tipo identificador paramFun BLOQUE_ABRE bloque BLOQUE_CIERRA ;
-
-params ::= tipo identificador
-        | tipo identificador COMA params
-        ;
-
-paramFun ::= PAREN_ABRE params PAREN_CIERRA
-         | PAREN_ABRE PAREN_CIERRA
+elif_opc ::= sentencia_elif elif_opc
+         | 
          ;
 
-llamadaFun ::= identificador PAREN_ABRE args PAREN_CIERRA
-           | identificador PAREN_ABRE PAREN_CIERRA
+else_opc ::= sentencia_else
+         |
+         ;
+
+sentencia_elif ::= ELIF condicion bloque ;
+sentencia_else ::= ELSE bloque ;
+
+bloque ::= inicio_bloque lista_lineas LLAVE_CIERRA {: parser.tabla.cerrarAlcance(); :}
+       | inicio_bloque error LLAVE_CIERRA {: parser.tabla.cerrarAlcance(); :}
+       ;
+
+inicio_bloque ::= LLAVE_ABRE:llave {: parser.tabla.abrirAlcance("bloque linea " + (llaveleft + 1)); :} ;
+
+lista_lineas ::= linea_bloque
+             | linea_bloque lista_lineas
+             ;
+
+linea_bloque ::= sentencia
+             | estructura_control
+             | bloque
+             | error FIN_SENT
+             | error bloque
+             ;
+
+estructura_control ::= sentencia_if
+                   | sentencia_while
+                   | sentencia_for
+                   ;
+
+sentencia_while ::= WHILE condicion bloque ;
+
+sentencia_for ::= apertura_for encabezado_for bloque {: parser.tabla.cerrarAlcance(); :} ;
+
+apertura_for ::= FOR:palabraFor {: parser.tabla.abrirAlcance("for linea " + (palabraForleft + 1)); :} ;
+
+encabezado_for ::= PARENTESIS_ABRE inicio_for expresion FIN_SENT actualizacion_for PARENTESIS_CIERRA ;
+
+inicio_for ::= declaracion
+           | asignacion
            ;
+
+actualizacion_for ::= expresion
+                  | identificador ASIGNACION expresion
+                  ;
+
+sentencia_return ::= RETURN expresion FIN_SENT ;
+sentencia_break ::= BREAK FIN_SENT ;
+
+sentencia_write ::= WRITE PARENTESIS_ABRE param_write PARENTESIS_CIERRA FIN_SENT ;
+
+param_write ::= literal_str
+            | literal_int
+            | literal_bool
+            | literal_float
+            | negativo
+            | identificador
+            | acceso_arreglo
+            ;
+
+sentencia_read ::= READ PARENTESIS_ABRE identificador PARENTESIS_CIERRA FIN_SENT ;
+
+funcion ::= encabezado_funcion param_fun cuerpo_funcion {: parser.tabla.cerrarAlcance(); :}
+        | encabezado_funcion error cuerpo_funcion {: parser.tabla.cerrarAlcance(); :}
+        ;
+
+encabezado_funcion ::= tipo:tipoRetorno identificador:nombre
+                       {: parser.agregarFuncion(nombre, tipoRetorno, nombreleft, nombreright);
+                          parser.tabla.abrirAlcance(nombre); :}
+                   ;
+
+cuerpo_funcion ::= LLAVE_ABRE lista_lineas LLAVE_CIERRA
+               | LLAVE_ABRE error LLAVE_CIERRA
+               ;
+
+params ::= parametro
+       | parametro COMA params
+       ;
+
+parametro ::= tipo:tipoDato identificador:nombre
+              {: parser.agregarSimbolo(nombre, "parametro", tipoDato, nombreleft, nombreright);
+                 parser.funcionActual.agregarTipoParametro(tipoDato); :}
+          ;
+
+param_fun ::= PARENTESIS_ABRE params PARENTESIS_CIERRA
+          | PARENTESIS_ABRE PARENTESIS_CIERRA
+          ;
+
+llamada_fun ::= identificador PARENTESIS_ABRE args PARENTESIS_CIERRA
+            | identificador PARENTESIS_ABRE PARENTESIS_CIERRA
+            ;
 
 args ::= expresion
      | expresion COMA args
      ;
 
-principal ::= VOID PRINCIPAL BLOQUE_ABRE bloque BLOQUE_CIERRA ;
+principal ::= encabezado_principal cuerpo_funcion {: parser.tabla.cerrarAlcance(); :} ;
 
-globalesOpc ::= declaracion globalesOpc
-            | declaracionList globalesOpc
-            |
-            ;
+encabezado_principal ::= VOID PRINCIPAL:palabraPrincipal PARENTESIS_ABRE PARENTESIS_CIERRA
+                         {: parser.agregarFuncion("principal", "void", palabraPrincipalleft, palabraPrincipalright);
+                            parser.tabla.abrirAlcance("principal"); :}
+                     ;
 
-funcionesOpc ::= funcion funcionesOpc
+globales_opc ::= declaracion globales_opc
+             | declaracion_arreglo globales_opc
+             | error FIN_SENT globales_opc
              |
              ;
 
-programa ::= globalesOpc funcionesOpc principal;
+funciones_opc ::= funcion funciones_opc
+              |
+              ;
+
+programa ::= globales_opc funciones_opc principal funciones_opc ;

@@ -1,0 +1,11 @@
+void principal є: :э ¿:
+  val int x Ͱ 1 »
+  while є: ʃ: x :ʅ < ʃ: 5 :ʅ :э ¿:
+    if є: ʃ: x :ʅ == ʃ: 2 :ʅ :э ¿:
+      val int y Ͱ »
+    :?
+    x++ »
+  :?
+  val int z Ͱ + »
+  write є: x :э »
+:?

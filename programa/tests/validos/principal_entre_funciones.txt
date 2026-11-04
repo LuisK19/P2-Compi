@@ -1,0 +1,10 @@
+val int contador Ͱ 0 »
+int antes є: :э ¿:
+  return 1 »
+:?
+void principal є: :э ¿:
+  contador Ͱ antes є: :э + despues є: :э »
+:?
+int despues є: :э ¿:
+  return 2 »
+:?

@@ -1,0 +1,4 @@
+void principal є: :э ¿:
+  val int datos ʃ: 3 :ʅ »
+  read є: datos ʃ: 0 :ʅ :э »
+:?

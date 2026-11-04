@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "App - archivo por defecto",
+            "request": "launch",
+            "mainClass": "src.App",
+            "cwd": "${workspaceFolder}/programa"
+        },
+        {
+            "type": "java",
+            "name": "App - escoger archivo",
+            "request": "launch",
+            "mainClass": "src.App",
+            "cwd": "${workspaceFolder}/programa",
+            "args": "${command:SpecifyProgramArgs}"
+        }
+    ]
+}

@@ -1,0 +1,3 @@
+void principal є: int a :э ¿:
+  val int x Ͱ a »
+:?

@@ -1,0 +1,6 @@
+string saludo є: :э ¿:
+  return "hola" »
+:?
+void principal є: :э ¿:
+  val int x Ͱ 1 »
+:?

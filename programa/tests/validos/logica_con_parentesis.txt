@@ -1,0 +1,7 @@
+void principal є: :э ¿:
+  val bool x Ͱ true »
+  val bool y Ͱ false »
+  val bool a Ͱ є: x :э λ є: y :э »
+  val bool o Ͱ є: x :э θ є: y :э »
+  val bool n Ͱ Σ є: x :э »
+:?
