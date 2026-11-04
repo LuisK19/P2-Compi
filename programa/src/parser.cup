@@ -118,19 +118,42 @@ parser code {:
         return tipo.equals("int") || tipo.equals("float");
     }
 
+    boolean aceptaTipoRelacional(String operador, String tipo) {
+        if (operador.equals("==") || operador.equals("!=")) {
+            return tipo.equals("int") || tipo.equals("float") || tipo.equals("bool") || tipo.equals("char");
+        }
+        return tipo.equals("int") || tipo.equals("float");
+    }
+
+    ResultadoExpresion errorDeOperandos(String operador, ResultadoExpresion izquierdo,
+            ResultadoExpresion derecho, int linea, int columna) {
+        reportarErrorSemantico("el operador '" + operador + "' no acepta operandos de tipo "
+                + izquierdo.getTipo() + " y " + derecho.getTipo(), linea, columna);
+        return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+    }
+
     ResultadoExpresion operacionAritmetica(String operador, ResultadoExpresion izquierdo,
             ResultadoExpresion derecho, int linea, int columna) {
         if (izquierdo.esError() || derecho.esError()) {
             return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
         }
-        String tipoIzquierdo = izquierdo.getTipo();
-        String tipoDerecho = derecho.getTipo();
-        if (!tipoIzquierdo.equals(tipoDerecho) || !aceptaTipoAritmetico(operador, tipoIzquierdo)) {
-            reportarErrorSemantico("el operador '" + operador + "' no acepta operandos de tipo "
-                    + tipoIzquierdo + " y " + tipoDerecho, linea, columna);
+        String tipo = izquierdo.getTipo();
+        if (!tipo.equals(derecho.getTipo()) || !aceptaTipoAritmetico(operador, tipo)) {
+            return errorDeOperandos(operador, izquierdo, derecho, linea, columna);
+        }
+        return new ResultadoExpresion(tipo);
+    }
+
+    ResultadoExpresion operacionRelacional(String operador, ResultadoExpresion izquierdo,
+            ResultadoExpresion derecho, int linea, int columna) {
+        if (izquierdo.esError() || derecho.esError()) {
             return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
         }
-        return new ResultadoExpresion(tipoIzquierdo);
+        String tipo = izquierdo.getTipo();
+        if (!tipo.equals(derecho.getTipo()) || !aceptaTipoRelacional(operador, tipo)) {
+            return errorDeOperandos(operador, izquierdo, derecho, linea, columna);
+        }
+        return new ResultadoExpresion("bool");
     }
 
     ResultadoExpresion operacionPotencia(ResultadoExpresion base, ResultadoExpresion exponente,
@@ -243,7 +266,7 @@ non terminal valor_arreglo_int, valor_arreglo_float;
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
 non terminal sentencia_while, sentencia_for, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
 non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
-non terminal op_orden, op_igualdad;
+non terminal String op_orden, op_igualdad;
 non terminal negativo_int, negativo_float;
 non terminal literal_float, literal_bool, literal_char, literal_str;
 
@@ -348,8 +371,10 @@ expr_rel ::= operacion_rel:valor {: RESULT = valor; :}
          | expr_arit:valor       {: RESULT = valor; :}
          ;
 
-operacion_rel ::= operando_rel op_orden operando_rel                {: RESULT = new ResultadoExpresion("bool"); :}
-              | operando_igualdad op_igualdad operando_igualdad     {: RESULT = new ResultadoExpresion("bool"); :}
+operacion_rel ::= operando_rel:izquierdo op_orden:op operando_rel:derecho
+                    {: RESULT = parser.operacionRelacional(op, izquierdo, derecho, opleft, opright); :}
+              | operando_igualdad:izquierdo op_igualdad:op operando_igualdad:derecho
+                    {: RESULT = parser.operacionRelacional(op, izquierdo, derecho, opleft, opright); :}
               ;
 
 operando_rel ::= CORCHETE_ABRE expr_arit:valor CORCHETE_CIERRA {: RESULT = valor; :} ;
@@ -359,9 +384,15 @@ operando_igualdad ::= operando_rel:valor                                  {: RES
                   | CORCHETE_ABRE operacion_log:valor CORCHETE_CIERRA     {: RESULT = valor; :}
                   ;
 
-op_orden ::= OP_MENOR | OP_MAYOR | OP_MENIG | OP_MAYIG ;
+op_orden ::= OP_MENOR {: RESULT = "<"; :}
+         | OP_MAYOR  {: RESULT = ">"; :}
+         | OP_MENIG  {: RESULT = "<="; :}
+         | OP_MAYIG  {: RESULT = ">="; :}
+         ;
 
-op_igualdad ::= OP_IGUAL | OP_DIFER ;
+op_igualdad ::= OP_IGUAL {: RESULT = "=="; :}
+            | OP_DIFER   {: RESULT = "!="; :}
+            ;
 
 expr_arit ::= term_mul_div:valor
                 {: RESULT = valor; :}
