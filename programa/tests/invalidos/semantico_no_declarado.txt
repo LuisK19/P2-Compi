@@ -1,0 +1,7 @@
+void principal є: :э ¿:
+  val int a Ͱ b + 1 »
+  c Ͱ 2 »
+  d ++ »
+  read є: e :э »
+  write є: f :э »
+:?

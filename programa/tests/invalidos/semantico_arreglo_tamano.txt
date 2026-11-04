@@ -1,0 +1,5 @@
+void principal є: :э ¿:
+  val int vacio ʃ:0:ʅ »
+  val int pocos ʃ:4:ʅ Ͱ ¿: 1, 2 :? »
+  val float muchos ʃ:2:ʅ Ͱ ¿: 1.5, 2.5, 3.5 :? »
+:?
