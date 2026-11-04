@@ -1,0 +1,15 @@
+void principal є: :э ¿:
+  val int i Ͱ 0 »
+  while є: ʃ: i :ʅ < ʃ: 10 :ʅ :э ¿:
+    if є: ʃ: i :ʅ == ʃ: 5 :ʅ :э ¿:
+      for є: val int j Ͱ 0 » ʃ: j :ʅ < ʃ: 3 :ʅ » j++ :э ¿:
+        write є: j :э »
+      :?
+    :? elif є: ʃ: i :ʅ > ʃ: 8 :ʅ :э ¿:
+      break »
+    :? else ¿:
+      write є: i :э »
+    :?
+    i++ »
+  :?
+:?

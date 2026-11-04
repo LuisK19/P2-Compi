@@ -1,0 +1,8 @@
+void principal є: :э ¿:
+  val bool x Ͱ true »
+  val bool y Ͱ false »
+  val bool z Ͱ true »
+  val bool r Ͱ є: є: x :э λ є: y :э :э θ є: z :э »
+  val bool s Ͱ Σ є: є: x :э θ є: y :э :э »
+  val bool t Ͱ є: ʃ: 1 :ʅ < ʃ: 2 :ʅ :э λ є: z :э »
+:?

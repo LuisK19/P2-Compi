@@ -1,6 +1,8 @@
 package src;
 
 import java.io.File;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,9 +29,18 @@ public class App {
      * @throws Exception si falla la generación, compilación o ejecución
      */
     public static void main(String[] args) throws Exception {
+        usarSalidaUtf8();
         generarLexerParser();
         compilarAnalizador();
         ejecutarAnalizador(args);
+    }
+
+    /**
+     * Configura la salida de consola en UTF-8.
+     */
+    private static void usarSalidaUtf8() {
+        System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
+        System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
     }
 
     /**
@@ -70,6 +81,11 @@ public class App {
                 "generated/Lexer.java",
                 "generated/Parser.java",
                 "generated/sym.java",
+                "src/Simbolo.java",
+                "src/SimboloArreglo.java",
+                "src/SimboloFuncion.java",
+                "src/Alcance.java",
+                "src/TablaSimbolos.java",
                 "src/Analizador.java");
 
         if (resultado != 0) {

@@ -1,0 +1,5 @@
+{
+    "java.project.sourcePaths": ["programa"],
+    "java.project.referencedLibraries": ["programa/tools/**/*.jar"],
+    "files.encoding": "utf8"
+}

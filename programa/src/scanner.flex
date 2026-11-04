@@ -13,13 +13,10 @@ import java_cup.runtime.*;
 %public
 
 %{
-    // Construye símbolos CUP con la ubicación actual, conservada en base cero.
     private boolean huboErroresLexicos = false;
     private StringBuilder erroresLexicos = new StringBuilder();
 
-    private Symbol symbol(int type) {
-        return new Symbol(type, yyline, yycolumn);
-    }
+    // Construye símbolos CUP con la ubicación actual, conservada en base cero.
     private Symbol symbol(int type, Object value) {
         return new Symbol(type, yyline, yycolumn, value);
     }
@@ -30,6 +27,14 @@ import java_cup.runtime.*;
 
     public String obtenerErroresLexicos() {
         return erroresLexicos.toString();
+    }
+
+    // Registra un error lexico con su posicion.
+    private void reportarError(String descripcion) {
+        huboErroresLexicos = true;
+        erroresLexicos.append("Error lexico en linea " + (yyline + 1)
+                + ", columna " + (yycolumn + 1) + ": " + descripcion);
+        erroresLexicos.append(System.lineSeparator());
     }
 %}
 
@@ -48,12 +53,14 @@ ID              = [a-zA-Z_][a-zA-Z0-9_]*
 
 ID_INVALIDO = [0-9]+{ID}
 
-CADENA          = \"[^\"]*\"
-CARACTER        = \'[^\']\'
+CADENA          = \"[^\"\r\n]*\"
+CADENA_SIN_CERRAR = \"[^\"\r\n]*
+CARACTER        = \'[^\'\r\n]\'
 ESPACIOS        = [ \t\r\n]+
 
-COMENTARIO_LINEA = "|"[^\n]* 
+COMENTARIO_LINEA = "|"[^\n]*
 COMENTARIO_MULTILINEA = "¡"[^!]*"!"
+COMENTARIO_SIN_CERRAR = "¡"[^!]*
 
 %%
 
@@ -70,7 +77,7 @@ COMENTARIO_MULTILINEA = "¡"[^!]*"!"
 "float"         { return symbol(sym.FLOAT, yytext()); }
 "bool"          { return symbol(sym.BOOL, yytext()); }
 "char"          { return symbol(sym.CHAR, yytext()); }
-"str"           { return symbol(sym.STR, yytext()); }
+"string"        { return symbol(sym.STR, yytext()); }
 "true"          { return symbol(sym.TRUE, yytext()); }
 "false"         { return symbol(sym.FALSE, yytext()); }
 "if"            { return symbol(sym.IF, yytext()); }
@@ -89,12 +96,12 @@ COMENTARIO_MULTILINEA = "¡"[^!]*"!"
 "++"            { return symbol(sym.OP_INC, yytext()); }
 "--"            { return symbol(sym.OP_DEC, yytext()); }
 "+"             { return symbol(sym.OP_SUMA, yytext()); }
-"-"             { return symbol(sym.OP_RESTA, yytext()); }
+"-"             { return symbol(sym.OP_MENOS, yytext()); }
 "*"             { return symbol(sym.OP_MULT, yytext()); }
 "//"            { return symbol(sym.OP_DIV_ENT, yytext()); }
 "/"             { return symbol(sym.OP_DIV, yytext()); }
-"%"             { return symbol(sym.OP_MOD, yytext()); }
-"^"             { return symbol(sym.OP_POT, yytext()); }
+"mod"             { return symbol(sym.OP_MOD, yytext()); }
+"pot"             { return symbol(sym.OP_POT, yytext()); }
 
 /* Operadores relacionales */
 "<="            { return symbol(sym.OP_MENIG, yytext()); }
@@ -110,12 +117,12 @@ COMENTARIO_MULTILINEA = "¡"[^!]*"!"
 "Σ"             { return symbol(sym.OP_NOT, yytext()); }
 
 /* Simbolos especiales */
-"¿:"            { return symbol(sym.BLOQUE_ABRE, yytext());}  
-":?"            { return symbol(sym.BLOQUE_CIERRA, yytext());}
-"ʃ:"            { return symbol(sym.INDICE_ABRE, yytext());}
-":ʅ"            { return symbol(sym.INDICE_CIERRA, yytext());}
-"є:"            { return symbol(sym.PAREN_ABRE, yytext());}
-":э"            { return symbol(sym.PAREN_CIERRA, yytext());}
+"¿:"            { return symbol(sym.LLAVE_ABRE, yytext());}  
+":?"            { return symbol(sym.LLAVE_CIERRA, yytext());}
+"ʃ:"            { return symbol(sym.CORCHETE_ABRE, yytext());}
+":ʅ"            { return symbol(sym.CORCHETE_CIERRA, yytext());}
+"є:"            { return symbol(sym.PARENTESIS_ABRE, yytext());}
+":э"            { return symbol(sym.PARENTESIS_CIERRA, yytext());}
 "Ͱ"             { return symbol(sym.ASIGNACION, yytext());}
 "»"             { return symbol(sym.FIN_SENT, yytext());}
 ","             { return symbol(sym.COMA, yytext());}
@@ -134,17 +141,7 @@ COMENTARIO_MULTILINEA = "¡"[^!]*"!"
 /* Error lexico */
 
 
-{ID_INVALIDO} {
-              huboErroresLexicos = true;
-              erroresLexicos.append("Error lexico en linea ").append(yyline + 1)
-                  .append(", columna ").append(yycolumn + 1)
-                  .append(": identificador no puede comenzar con un digito '")
-                  .append(yytext()).append("'")
-                  .append(System.lineSeparator());
-            }
-
-[^]     { huboErroresLexicos = true;
-              erroresLexicos.append("Error lexico en linea ").append(yyline + 1)
-                  .append(", columna ").append(yycolumn + 1)
-                  .append(": caracter no reconocido '").append(yytext()).append("'")
-                  .append(System.lineSeparator()); }
+{ID_INVALIDO}           { reportarError("identificador no puede comenzar con un digito '" + yytext() + "'"); }
+{CADENA_SIN_CERRAR}     { reportarError("string sin cerrar en la misma linea " + yytext()); }
+{COMENTARIO_SIN_CERRAR} { reportarError("comentario multilinea sin cerrar (falta '!')"); }
+[^]                     { reportarError("caracter no reconocido '" + yytext() + "'"); }

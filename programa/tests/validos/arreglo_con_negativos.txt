@@ -1,0 +1,4 @@
+void principal є: :э ¿:
+  val int arr ʃ: 3 :ʅ Ͱ ¿: -1, 2, -3 :? »
+  val float notas ʃ: 2 :ʅ Ͱ ¿: -1.5, 2.5 :? »
+:?

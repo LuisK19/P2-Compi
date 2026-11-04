@@ -1,0 +1,7 @@
+void principal є: :э ¿:
+  val int a Ͱ 1 »
+  val int b Ͱ 2 »
+  val char c Ͱ 'x' »
+  val bool r1 Ͱ ʃ: ʃ: a :ʅ < ʃ: b :ʅ :ʅ == ʃ: true :ʅ »
+  val bool r2 Ͱ ʃ: c :ʅ != ʃ: 'y' :ʅ »
+:?
