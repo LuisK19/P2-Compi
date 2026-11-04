@@ -108,17 +108,31 @@ parser code {:
         return simbolo.getTipo();
     }
 
+    boolean estaDuplicado(String nombre, int linea, int columna) {
+        if (tabla.buscarEnAlcanceActual(nombre) == null) {
+            return false;
+        }
+        reportarErrorSemantico("el identificador '" + nombre + "' ya fue declarado en este alcance", linea, columna);
+        return true;
+    }
+
     void agregarSimbolo(String nombre, String categoria, String tipo, int linea, int columna) {
-        tabla.agregar(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
+        if (!estaDuplicado(nombre, linea, columna)) {
+            tabla.agregar(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
+        }
     }
 
     void agregarArreglo(String nombre, String tipo, int tamano, int linea, int columna) {
-        tabla.agregar(new SimboloArreglo(nombre, tipo, tamano, linea + 1, columna + 1));
+        if (!estaDuplicado(nombre, linea, columna)) {
+            tabla.agregar(new SimboloArreglo(nombre, tipo, tamano, linea + 1, columna + 1));
+        }
     }
 
     void agregarFuncion(String nombre, String tipoRetorno, int linea, int columna) {
         funcionActual = new SimboloFuncion(nombre, tipoRetorno, linea + 1, columna + 1);
-        tabla.agregar(funcionActual);
+        if (!estaDuplicado(nombre, linea, columna)) {
+            tabla.agregar(funcionActual);
+        }
     }
 
     // Cantidad de tokens que deben leerse bien despues de un error para reportar el siguiente.
