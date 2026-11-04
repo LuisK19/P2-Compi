@@ -25,6 +25,21 @@ public class Alcance {
         simbolos.add(simbolo);
     }
 
+    /**
+     * Busca un símbolo declarado directamente en este alcance.
+     *
+     * @param nombreBuscado nombre del símbolo
+     * @return el símbolo encontrado, o {@code null} si no está en este alcance
+     */
+    public Simbolo buscar(String nombreBuscado) {
+        for (Simbolo simbolo : simbolos) {
+            if (simbolo.getNombre().equals(nombreBuscado)) {
+                return simbolo;
+            }
+        }
+        return null;
+    }
+
     public String getNombre() {
         return nombre;
     }

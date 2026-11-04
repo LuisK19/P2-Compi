@@ -20,6 +20,10 @@ public class SimboloArreglo extends Simbolo {
         this.tamano = tamano;
     }
 
+    public int getTamano() {
+        return tamano;
+    }
+
     @Override
     public String getInformacionExtra() {
         return "tamano: " + tamano;
