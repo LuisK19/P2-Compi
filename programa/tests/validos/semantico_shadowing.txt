@@ -1,0 +1,15 @@
+val int contador Ͱ 10 »
+
+int incrementar є: int contador :э ¿:
+  return contador + 1 »
+:?
+
+void principal є: :э ¿:
+  val int resultado Ͱ contador »
+  ¿:
+    val int contador Ͱ 5 »
+    resultado Ͱ contador »
+  :?
+  contador Ͱ resultado »
+  write є: contador :э »
+:?

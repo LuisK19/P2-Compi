@@ -1,0 +1,15 @@
+val int total Ͱ 0 »
+val float total Ͱ 1.5 »
+
+int total є: :э ¿:
+  return 1 »
+:?
+
+void principal є: :э ¿:
+  val int x Ͱ 1 »
+  val int x Ͱ 2 »
+  ¿:
+    val int y »
+    val char y »
+  :?
+:?

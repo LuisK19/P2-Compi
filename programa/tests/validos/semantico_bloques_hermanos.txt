@@ -1,0 +1,21 @@
+void principal є: :э ¿:
+  val int n Ͱ 3 »
+  if є: ʃ:n:ʅ > ʃ:5:ʅ :э ¿:
+    val int temporal Ͱ 1 »
+    write є: temporal :э »
+  :?
+  elif є: ʃ:n:ʅ > ʃ:2:ʅ :э ¿:
+    val int temporal Ͱ 2 »
+    write є: temporal :э »
+  :?
+  else ¿:
+    val int temporal Ͱ 3 »
+    write є: temporal :э »
+  :?
+  for є: val int i Ͱ 0 » ʃ:i:ʅ < ʃ:n:ʅ » i++ :э ¿:
+    write є: i :э »
+  :?
+  for є: val int i Ͱ 0 » ʃ:i:ʅ < ʃ:n:ʅ » i++ :э ¿:
+    write є: i :э »
+  :?
+:?

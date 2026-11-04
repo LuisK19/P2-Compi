@@ -72,17 +72,92 @@ parser code {:
                 + ", columna " + (columna + 1) + ": " + mensaje);
     }
 
+    Simbolo buscarDeclarado(String nombre, int linea, int columna) {
+        Simbolo simbolo = tabla.buscar(nombre);
+        if (simbolo == null) {
+            reportarErrorSemantico("el identificador '" + nombre + "' no ha sido declarado", linea, columna);
+        }
+        return simbolo;
+    }
+
+    String tipoDeVariable(String nombre, int linea, int columna) {
+        Simbolo simbolo = buscarDeclarado(nombre, linea, columna);
+        if (simbolo == null) {
+            return ResultadoExpresion.TIPO_ERROR;
+        }
+        if (simbolo.getCategoria().equals("arreglo")) {
+            reportarErrorSemantico("el arreglo '" + nombre + "' debe usarse con un indice", linea, columna);
+            return ResultadoExpresion.TIPO_ERROR;
+        }
+        if (simbolo.getCategoria().equals("funcion")) {
+            reportarErrorSemantico("'" + nombre + "' es una funcion y no puede usarse como variable", linea, columna);
+            return ResultadoExpresion.TIPO_ERROR;
+        }
+        return simbolo.getTipo();
+    }
+
+    String tipoDeArreglo(String nombre, int linea, int columna) {
+        Simbolo simbolo = buscarDeclarado(nombre, linea, columna);
+        if (simbolo == null) {
+            return ResultadoExpresion.TIPO_ERROR;
+        }
+        if (!simbolo.getCategoria().equals("arreglo")) {
+            reportarErrorSemantico("'" + nombre + "' no es un arreglo", linea, columna);
+            return ResultadoExpresion.TIPO_ERROR;
+        }
+        return simbolo.getTipo();
+    }
+
+    boolean esTipoDeArreglo(String tipo) {
+        return tipo.equals("int") || tipo.equals("float");
+    }
+
+    void validarArreglo(String nombre, String tipo, int tamano, int linea, int columna) {
+        if (!esTipoDeArreglo(tipo)) {
+            reportarErrorSemantico("el arreglo '" + nombre + "' solo puede ser de tipo int o float", linea, columna);
+        }
+        if (tamano <= 0) {
+            reportarErrorSemantico("el tamano del arreglo '" + nombre + "' debe ser mayor que 0", linea, columna);
+        }
+    }
+
+    void validarValoresArreglo(String nombre, String tipo, int tamano, String tipoValores, int cantidad,
+            int linea, int columna) {
+        if (esTipoDeArreglo(tipo) && !tipo.equals(tipoValores)) {
+            reportarErrorSemantico("el arreglo '" + nombre + "' es de tipo " + tipo
+                    + " pero sus valores son de tipo " + tipoValores, linea, columna);
+        }
+        if (tamano > 0 && cantidad != tamano) {
+            reportarErrorSemantico("el arreglo '" + nombre + "' tiene tamano " + tamano
+                    + " pero recibe " + cantidad + " valores", linea, columna);
+        }
+    }
+
+    boolean estaDuplicado(String nombre, int linea, int columna) {
+        if (tabla.buscarEnAlcanceActual(nombre) == null) {
+            return false;
+        }
+        reportarErrorSemantico("el identificador '" + nombre + "' ya fue declarado en este alcance", linea, columna);
+        return true;
+    }
+
     void agregarSimbolo(String nombre, String categoria, String tipo, int linea, int columna) {
-        tabla.agregar(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
+        if (!estaDuplicado(nombre, linea, columna)) {
+            tabla.agregar(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
+        }
     }
 
     void agregarArreglo(String nombre, String tipo, int tamano, int linea, int columna) {
-        tabla.agregar(new SimboloArreglo(nombre, tipo, tamano, linea + 1, columna + 1));
+        if (!estaDuplicado(nombre, linea, columna)) {
+            tabla.agregar(new SimboloArreglo(nombre, tipo, tamano, linea + 1, columna + 1));
+        }
     }
 
     void agregarFuncion(String nombre, String tipoRetorno, int linea, int columna) {
         funcionActual = new SimboloFuncion(nombre, tipoRetorno, linea + 1, columna + 1);
-        tabla.agregar(funcionActual);
+        if (!estaDuplicado(nombre, linea, columna)) {
+            tabla.agregar(funcionActual);
+        }
     }
 
     // Cantidad de tokens que deben leerse bien despues de un error para reportar el siguiente.
@@ -129,7 +204,7 @@ terminal String CARACTER;
 non terminal programa, globales_opc, funciones_opc, principal, encabezado_principal;
 non terminal funcion, encabezado_funcion, cuerpo_funcion, params, parametro, param_fun, args;
 non terminal declaracion, declaracion_arreglo, asignacion, bloque, inicio_bloque, lista_lineas, linea_bloque, sentencia;
-non terminal valores_arreglo_int, valor_arreglo_int, valores_arreglo_float, valor_arreglo_float;
+non terminal valor_arreglo_int, valor_arreglo_float;
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
 non terminal sentencia_while, sentencia_for, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
 non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
@@ -139,7 +214,7 @@ non terminal literal_float, literal_bool, literal_char, literal_str;
 
 /* No terminales que devuelven un valor para la tabla de símbolos */
 non terminal String identificador, tipo;
-non terminal Integer literal_int, tamano_arreglo;
+non terminal Integer literal_int, tamano_arreglo, valores_arreglo_int, valores_arreglo_float;
 
 /* No terminales que devuelven el resultado de una expresión */
 non terminal ResultadoExpresion expresion, expr_log, operacion_log, negacion, operando_log;
@@ -174,16 +249,16 @@ literal_bool  ::= TRUE | FALSE ;
 literal_char  ::= CARACTER ;
 literal_str   ::= CADENA ;
 
-valores_arreglo_int ::= valor_arreglo_int
-                    | valor_arreglo_int COMA valores_arreglo_int
+valores_arreglo_int ::= valor_arreglo_int                                   {: RESULT = 1; :}
+                    | valor_arreglo_int COMA valores_arreglo_int:cantidad   {: RESULT = cantidad + 1; :}
                     ;
 
 valor_arreglo_int ::= literal_int
                   | negativo_int
                   ;
 
-valores_arreglo_float ::= valor_arreglo_float
-                      | valor_arreglo_float COMA valores_arreglo_float
+valores_arreglo_float ::= valor_arreglo_float                                     {: RESULT = 1; :}
+                      | valor_arreglo_float COMA valores_arreglo_float:cantidad   {: RESULT = cantidad + 1; :}
                       ;
 
 valor_arreglo_float ::= literal_float
@@ -197,17 +272,24 @@ declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
             ;
 
 declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano FIN_SENT
-                        {: parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
-                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_int LLAVE_CIERRA FIN_SENT
-                        {: parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
-                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_float LLAVE_CIERRA FIN_SENT
-                        {: parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
+                        {: parser.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
+                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_int:cantidad LLAVE_CIERRA FIN_SENT
+                        {: parser.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                           parser.validarValoresArreglo(nombre, tipoDato, tamano, "int", cantidad, nombreleft, nombreright);
+                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
+                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_float:cantidad LLAVE_CIERRA FIN_SENT
+                        {: parser.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                           parser.validarValoresArreglo(nombre, tipoDato, tamano, "float", cantidad, nombreleft, nombreright);
+                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
                     ;
 
 tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = tamano; :} ;
 
-asignacion ::= identificador ASIGNACION expresion FIN_SENT
-           | identificador CORCHETE_ABRE expr_arit CORCHETE_CIERRA ASIGNACION expresion FIN_SENT
+asignacion ::= identificador:nombre ASIGNACION expresion FIN_SENT
+                {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
+           | identificador:nombre CORCHETE_ABRE expr_arit CORCHETE_CIERRA ASIGNACION expresion FIN_SENT
+                {: parser.tipoDeArreglo(nombre, nombreleft, nombreright); :}
            ;
 
 expresion ::= expr_log:valor {: RESULT = valor; :} ;
@@ -266,7 +348,7 @@ potencia ::= atomo:valor                        {: RESULT = valor; :}
          ;
 
 atomo ::= literal:valor                                     {: RESULT = valor; :}
-      | identificador:nombre                                {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :}
+      | identificador:nombre                                {: RESULT = new ResultadoExpresion(parser.tipoDeVariable(nombre, nombreleft, nombreright)); :}
       | PARENTESIS_ABRE expresion:valor PARENTESIS_CIERRA   {: RESULT = valor; :}
       | negativo:valor                                      {: RESULT = valor; :}
       | incremento:valor                                    {: RESULT = valor; :}
@@ -276,7 +358,7 @@ atomo ::= literal:valor                                     {: RESULT = valor; :
       ;
 
 acceso_arreglo ::= identificador:nombre CORCHETE_ABRE expr_arit CORCHETE_CIERRA
-                   {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :}
+                   {: RESULT = new ResultadoExpresion(parser.tipoDeArreglo(nombre, nombreleft, nombreright)); :}
                ;
 
 negativo ::= negativo_int   {: RESULT = new ResultadoExpresion("int"); :}
@@ -286,8 +368,8 @@ negativo ::= negativo_int   {: RESULT = new ResultadoExpresion("int"); :}
 negativo_int ::= OP_MENOS literal_int ;
 negativo_float ::= OP_MENOS literal_float ;
 
-incremento ::= identificador:nombre OP_INC {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :} ;
-decremento ::= identificador:nombre OP_DEC {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :} ;
+incremento ::= identificador:nombre OP_INC {: RESULT = new ResultadoExpresion(parser.tipoDeVariable(nombre, nombreleft, nombreright)); :} ;
+decremento ::= identificador:nombre OP_DEC {: RESULT = new ResultadoExpresion(parser.tipoDeVariable(nombre, nombreleft, nombreright)); :} ;
 
 sentencia ::= declaracion
           | declaracion_arreglo
@@ -353,7 +435,8 @@ inicio_for ::= declaracion
            ;
 
 actualizacion_for ::= expresion
-                  | identificador ASIGNACION expresion
+                  | identificador:nombre ASIGNACION expresion
+                    {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
                   ;
 
 sentencia_return ::= RETURN expresion FIN_SENT ;
@@ -366,11 +449,13 @@ param_write ::= literal_str
             | literal_bool
             | literal_float
             | negativo
-            | identificador
+            | identificador:nombre {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
             | acceso_arreglo
             ;
 
-sentencia_read ::= READ PARENTESIS_ABRE identificador PARENTESIS_CIERRA FIN_SENT ;
+sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA FIN_SENT
+                   {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
+               ;
 
 funcion ::= encabezado_funcion param_fun cuerpo_funcion {: parser.tabla.cerrarAlcance(); :}
         | encabezado_funcion error cuerpo_funcion {: parser.tabla.cerrarAlcance(); :}
