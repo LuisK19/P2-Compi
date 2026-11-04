@@ -12,6 +12,7 @@ import src.TablaSimbolos;
 parser code {:
     Lexer analizadorLexico;
     private boolean huboErroresSintacticos = false;
+    private boolean huboErroresSemanticos = false;
     TablaSimbolos tabla = new TablaSimbolos();
     SimboloFuncion funcionActual;
 
@@ -47,11 +48,21 @@ parser code {:
         return huboErroresSintacticos;
     }
 
+    public boolean huboErroresSemanticos() {
+        return huboErroresSemanticos;
+    }
+
     public TablaSimbolos getTablaSimbolos() {
         return tabla;
     }
 
-    // En los metodos siguientes la linea y columna llegan desde 0; en la tabla se guardan desde 1.
+    // En los metodos siguientes la linea y columna llegan desde 0; se muestran y guardan desde 1.
+    void reportarErrorSemantico(String mensaje, int linea, int columna) {
+        huboErroresSemanticos = true;
+        System.err.println("Error semantico en la linea " + (linea + 1)
+                + ", columna " + (columna + 1) + ": " + mensaje);
+    }
+
     void agregarSimbolo(String nombre, String categoria, String tipo, int linea, int columna) {
         tabla.agregar(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
     }
