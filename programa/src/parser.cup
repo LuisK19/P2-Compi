@@ -108,6 +108,41 @@ parser code {:
         return simbolo.getTipo();
     }
 
+    boolean aceptaTipoAritmetico(String operador, String tipo) {
+        if (operador.equals("/")) {
+            return tipo.equals("float");
+        }
+        if (operador.equals("//") || operador.equals("mod") || operador.equals("pot")) {
+            return tipo.equals("int");
+        }
+        return tipo.equals("int") || tipo.equals("float");
+    }
+
+    ResultadoExpresion operacionAritmetica(String operador, ResultadoExpresion izquierdo,
+            ResultadoExpresion derecho, int linea, int columna) {
+        if (izquierdo.esError() || derecho.esError()) {
+            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+        }
+        String tipoIzquierdo = izquierdo.getTipo();
+        String tipoDerecho = derecho.getTipo();
+        if (!tipoIzquierdo.equals(tipoDerecho) || !aceptaTipoAritmetico(operador, tipoIzquierdo)) {
+            reportarErrorSemantico("el operador '" + operador + "' no acepta operandos de tipo "
+                    + tipoIzquierdo + " y " + tipoDerecho, linea, columna);
+            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+        }
+        return new ResultadoExpresion(tipoIzquierdo);
+    }
+
+    ResultadoExpresion operacionPotencia(ResultadoExpresion base, ResultadoExpresion exponente,
+            int linea, int columna) {
+        ResultadoExpresion resultado = operacionAritmetica("pot", base, exponente, linea, columna);
+        if (!resultado.esError() && exponente.esLiteralNegativo()) {
+            reportarErrorSemantico("el exponente de 'pot' no puede ser negativo", linea, columna);
+            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+        }
+        return resultado;
+    }
+
     boolean esTipoDeArreglo(String tipo) {
         return tipo.equals("int") || tipo.equals("float");
     }
@@ -328,23 +363,34 @@ op_orden ::= OP_MENOR | OP_MAYOR | OP_MENIG | OP_MAYIG ;
 
 op_igualdad ::= OP_IGUAL | OP_DIFER ;
 
-expr_arit ::= term_mul_div:valor                        {: RESULT = valor; :}
-          | expr_arit:izquierdo OP_MOD term_mul_div     {: RESULT = izquierdo; :}
+expr_arit ::= term_mul_div:valor
+                {: RESULT = valor; :}
+          | expr_arit:izquierdo OP_MOD:op term_mul_div:derecho
+                {: RESULT = parser.operacionAritmetica("mod", izquierdo, derecho, opleft, opright); :}
           ;
 
-term_mul_div ::= term_sum_res:valor                             {: RESULT = valor; :}
-             | term_mul_div:izquierdo OP_MULT term_sum_res      {: RESULT = izquierdo; :}
-             | term_mul_div:izquierdo OP_DIV term_sum_res       {: RESULT = izquierdo; :}
-             | term_mul_div:izquierdo OP_DIV_ENT term_sum_res   {: RESULT = izquierdo; :}
+term_mul_div ::= term_sum_res:valor
+                {: RESULT = valor; :}
+             | term_mul_div:izquierdo OP_MULT:op term_sum_res:derecho
+                {: RESULT = parser.operacionAritmetica("*", izquierdo, derecho, opleft, opright); :}
+             | term_mul_div:izquierdo OP_DIV:op term_sum_res:derecho
+                {: RESULT = parser.operacionAritmetica("/", izquierdo, derecho, opleft, opright); :}
+             | term_mul_div:izquierdo OP_DIV_ENT:op term_sum_res:derecho
+                {: RESULT = parser.operacionAritmetica("//", izquierdo, derecho, opleft, opright); :}
              ;
 
-term_sum_res ::= potencia:valor                             {: RESULT = valor; :}
-             | term_sum_res:izquierdo OP_SUMA potencia      {: RESULT = izquierdo; :}
-             | term_sum_res:izquierdo OP_MENOS potencia     {: RESULT = izquierdo; :}
+term_sum_res ::= potencia:valor
+                {: RESULT = valor; :}
+             | term_sum_res:izquierdo OP_SUMA:op potencia:derecho
+                {: RESULT = parser.operacionAritmetica("+", izquierdo, derecho, opleft, opright); :}
+             | term_sum_res:izquierdo OP_MENOS:op potencia:derecho
+                {: RESULT = parser.operacionAritmetica("-", izquierdo, derecho, opleft, opright); :}
              ;
 
-potencia ::= atomo:valor                        {: RESULT = valor; :}
-         | atomo:izquierdo OP_POT potencia      {: RESULT = izquierdo; :}
+potencia ::= atomo:valor
+                {: RESULT = valor; :}
+         | atomo:base OP_POT:op potencia:exponente
+                {: RESULT = parser.operacionPotencia(base, exponente, opleft, opright); :}
          ;
 
 atomo ::= literal:valor                                     {: RESULT = valor; :}
@@ -361,8 +407,12 @@ acceso_arreglo ::= identificador:nombre CORCHETE_ABRE expr_arit CORCHETE_CIERRA
                    {: RESULT = new ResultadoExpresion(parser.tipoDeArreglo(nombre, nombreleft, nombreright)); :}
                ;
 
-negativo ::= negativo_int   {: RESULT = new ResultadoExpresion("int"); :}
-         | negativo_float   {: RESULT = new ResultadoExpresion("float"); :}
+negativo ::= negativo_int
+                {: RESULT = new ResultadoExpresion("int");
+                   RESULT.marcarLiteralNegativo(); :}
+         | negativo_float
+                {: RESULT = new ResultadoExpresion("float");
+                   RESULT.marcarLiteralNegativo(); :}
          ;
 
 negativo_int ::= OP_MENOS literal_int ;

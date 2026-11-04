@@ -12,6 +12,7 @@ public class ResultadoExpresion {
     private String tipo;
     private String direccion;
     private String codigo;
+    private boolean literalNegativo = false;
 
     /**
      * Crea un resultado que solo tiene tipo.
@@ -45,5 +46,17 @@ public class ResultadoExpresion {
 
     public String getCodigo() {
         return codigo;
+    }
+
+    public boolean esError() {
+        return tipo.equals(TIPO_ERROR);
+    }
+
+    public boolean esLiteralNegativo() {
+        return literalNegativo;
+    }
+
+    public void marcarLiteralNegativo() {
+        literalNegativo = true;
     }
 }
