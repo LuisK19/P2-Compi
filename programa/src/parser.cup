@@ -1,6 +1,8 @@
 package generated;
 
 import java_cup.runtime.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import src.ResultadoExpresion;
 import src.Simbolo;
 import src.SimboloArreglo;
@@ -13,16 +15,26 @@ import src.TablaSimbolos;
 parser code {:
     Lexer analizadorLexico;
     private boolean huboErroresSintacticos = false;
+    private int cantidadErroresSintacticos = 0;
     private boolean huboErroresSemanticos = false;
     TablaSimbolos tabla = new TablaSimbolos();
     SimboloFuncion funcionActual;
+    boolean funcionTieneReturn = false;
+    int erroresSintacticosAlIniciarFuncion = 0;
+    int ciclosAbiertos = 0;
+    HashMap<String, SimboloFuncion> funcionesDeclaradas = new HashMap<>();
 
     public Parser(Lexer analizadorLexico) {
         this.analizadorLexico = analizadorLexico;
     }
 
+    public void setFuncionesDeclaradas(HashMap<String, SimboloFuncion> funcionesDeclaradas) {
+        this.funcionesDeclaradas = funcionesDeclaradas;
+    }
+
     public void report_error(String mensaje, Object infoAdicional) {
         huboErroresSintacticos = true;
+        cantidadErroresSintacticos++;
         String textoError = "Error de sintaxis";
         
         if (infoAdicional instanceof Symbol) {
@@ -55,14 +67,6 @@ parser code {:
 
     public TablaSimbolos getTablaSimbolos() {
         return tabla;
-    }
-
-    String tipoDeSimbolo(String nombre) {
-        Simbolo simbolo = tabla.buscar(nombre);
-        if (simbolo == null) {
-            return ResultadoExpresion.TIPO_ERROR;
-        }
-        return simbolo.getTipo();
     }
 
     // En los metodos siguientes la linea y columna llegan desde 0; se muestran y guardan desde 1.
@@ -225,6 +229,90 @@ parser code {:
         return resultado;
     }
 
+    ResultadoExpresion llamadaFuncion(String nombre, ArrayList<ResultadoExpresion> argumentos,
+            int linea, int columna) {
+        Simbolo simbolo = tabla.buscar(nombre);
+        if (simbolo != null && !simbolo.getCategoria().equals("funcion")) {
+            reportarErrorSemantico("'" + nombre + "' no es una funcion", linea, columna);
+            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+        }
+        SimboloFuncion funcion = funcionesDeclaradas.get(nombre);
+        if (funcion == null) {
+            reportarErrorSemantico("la funcion '" + nombre + "' no ha sido declarada", linea, columna);
+            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+        }
+        validarArgumentos(funcion, argumentos, linea, columna);
+        return new ResultadoExpresion(funcion.getTipo());
+    }
+
+    void validarArgumentos(SimboloFuncion funcion, ArrayList<ResultadoExpresion> argumentos,
+            int linea, int columna) {
+        ArrayList<String> tiposParametros = funcion.getTiposParametros();
+        if (argumentos.size() != tiposParametros.size()) {
+            reportarErrorSemantico("la funcion '" + funcion.getNombre() + "' espera " + tiposParametros.size()
+                    + " argumentos y recibe " + argumentos.size(), linea, columna);
+            return;
+        }
+        for (int i = 0; i < argumentos.size(); i++) {
+            ResultadoExpresion argumento = argumentos.get(i);
+            String tipoEsperado = tiposParametros.get(i);
+            if (!argumento.esError() && !argumento.getTipo().equals(tipoEsperado)) {
+                reportarErrorSemantico("el argumento " + (i + 1) + " de '" + funcion.getNombre()
+                        + "' debe ser de tipo " + tipoEsperado + ", no " + argumento.getTipo(), linea, columna);
+            }
+        }
+    }
+
+    void validarReturn(ResultadoExpresion valor, int linea, int columna) {
+        funcionTieneReturn = true;
+        String tipoFuncion = funcionActual.getTipo();
+        if (tipoFuncion.equals("void")) {
+            reportarErrorSemantico("'" + funcionActual.getNombre() + "' es de tipo void y no puede tener return",
+                    linea, columna);
+            return;
+        }
+        if (!valor.esError() && !valor.getTipo().equals(tipoFuncion)) {
+            reportarErrorSemantico("la funcion '" + funcionActual.getNombre() + "' debe retornar " + tipoFuncion
+                    + ", no " + valor.getTipo(), linea, columna);
+        }
+    }
+
+    // Si hubo errores de sintaxis en la funcion, un return pudo haberse descartado al recuperarse.
+    void validarFuncionConReturn() {
+        boolean huboErroresEnFuncion = cantidadErroresSintacticos > erroresSintacticosAlIniciarFuncion;
+        if (!funcionTieneReturn && !huboErroresEnFuncion) {
+            reportarErrorSemantico("la funcion '" + funcionActual.getNombre() + "' no tiene ningun return",
+                    funcionActual.getLinea() - 1, funcionActual.getColumna() - 1);
+        }
+    }
+
+    void validarBreak(int linea, int columna) {
+        if (ciclosAbiertos == 0) {
+            reportarErrorSemantico("break solo se puede usar dentro de un while o un for", linea, columna);
+        }
+    }
+
+    void validarTipoRead(String nombre, String tipo, int linea, int columna) {
+        if (tipo.equals("string") || tipo.equals("bool")) {
+            reportarErrorSemantico("read solo puede leer variables int, float o char y '" + nombre
+                    + "' es de tipo " + tipo, linea, columna);
+        }
+    }
+
+    void validarTipoWrite(String nombre, String tipo, int linea, int columna) {
+        if (tipo.equals("char")) {
+            reportarErrorSemantico("write solo puede escribir string, int, bool o float y '" + nombre
+                    + "' es de tipo char", linea, columna);
+        }
+    }
+
+    void validarTipoRetorno(String nombre, String tipo, int linea, int columna) {
+        if (!tipo.equals("int") && !tipo.equals("float") && !tipo.equals("char") && !tipo.equals("bool")) {
+            reportarErrorSemantico("la funcion '" + nombre + "' no puede retornar " + tipo
+                    + "; solo se permite int, float, char o bool", linea, columna);
+        }
+    }
+
     boolean esTipoDeArreglo(String tipo) {
         return tipo.equals("int") || tipo.equals("float");
     }
@@ -272,6 +360,8 @@ parser code {:
 
     void agregarFuncion(String nombre, String tipoRetorno, int linea, int columna) {
         funcionActual = new SimboloFuncion(nombre, tipoRetorno, linea + 1, columna + 1);
+        funcionTieneReturn = false;
+        erroresSintacticosAlIniciarFuncion = cantidadErroresSintacticos;
         if (!estaDuplicado(nombre, linea, columna)) {
             tabla.agregar(funcionActual);
         }
@@ -319,11 +409,12 @@ terminal String CARACTER;
 
 /*No terminales*/
 non terminal programa, globales_opc, funciones_opc, principal, encabezado_principal;
-non terminal funcion, encabezado_funcion, cuerpo_funcion, params, parametro, param_fun, args;
+non terminal funcion, encabezado_funcion, cuerpo_funcion, params, parametro, param_fun;
+non terminal ArrayList<ResultadoExpresion> args;
 non terminal declaracion, declaracion_arreglo, asignacion, bloque, inicio_bloque, lista_lineas, linea_bloque, sentencia;
 non terminal valor_arreglo_int, valor_arreglo_float;
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
-non terminal sentencia_while, sentencia_for, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
+non terminal sentencia_while, apertura_while, sentencia_for, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
 non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
 non terminal String op_orden, op_igualdad;
 non terminal negativo_int, negativo_float;
@@ -573,11 +664,19 @@ estructura_control ::= sentencia_if
                    | sentencia_for
                    ;
 
-sentencia_while ::= WHILE condicion bloque ;
+sentencia_while ::= apertura_while condicion bloque {: parser.ciclosAbiertos--; :} ;
 
-sentencia_for ::= apertura_for encabezado_for bloque {: parser.tabla.cerrarAlcance(); :} ;
+apertura_while ::= WHILE {: parser.ciclosAbiertos++; :} ;
 
-apertura_for ::= FOR:palabraFor {: parser.tabla.abrirAlcance("for linea " + (palabraForleft + 1)); :} ;
+sentencia_for ::= apertura_for encabezado_for bloque
+                  {: parser.ciclosAbiertos--;
+                     parser.tabla.cerrarAlcance(); :}
+              ;
+
+apertura_for ::= FOR:palabraFor
+                 {: parser.ciclosAbiertos++;
+                    parser.tabla.abrirAlcance("for linea " + (palabraForleft + 1)); :}
+             ;
 
 encabezado_for ::= PARENTESIS_ABRE inicio_for expresion:valor FIN_SENT:fin actualizacion_for PARENTESIS_CIERRA
                    {: parser.validarCondicion(valor, finleft, finright); :}
@@ -593,8 +692,12 @@ actualizacion_for ::= expresion
                        parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright); :}
                   ;
 
-sentencia_return ::= RETURN expresion FIN_SENT ;
-sentencia_break ::= BREAK FIN_SENT ;
+sentencia_return ::= RETURN:palabraReturn expresion:valor FIN_SENT
+                     {: parser.validarReturn(valor, palabraReturnleft, palabraReturnright); :}
+                 ;
+sentencia_break ::= BREAK:palabraBreak FIN_SENT
+                    {: parser.validarBreak(palabraBreakleft, palabraBreakright); :}
+                ;
 
 sentencia_write ::= WRITE PARENTESIS_ABRE param_write PARENTESIS_CIERRA FIN_SENT ;
 
@@ -603,20 +706,28 @@ param_write ::= literal_str
             | literal_bool
             | literal_float
             | negativo
-            | identificador:nombre {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
+            | identificador:nombre
+                {: String tipo = parser.tipoDeVariable(nombre, nombreleft, nombreright);
+                   parser.validarTipoWrite(nombre, tipo, nombreleft, nombreright); :}
             | acceso_arreglo
             ;
 
 sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA FIN_SENT
-                   {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
+                   {: String tipo = parser.tipoDeVariable(nombre, nombreleft, nombreright);
+                      parser.validarTipoRead(nombre, tipo, nombreleft, nombreright); :}
                ;
 
-funcion ::= encabezado_funcion param_fun cuerpo_funcion {: parser.tabla.cerrarAlcance(); :}
-        | encabezado_funcion error cuerpo_funcion {: parser.tabla.cerrarAlcance(); :}
+funcion ::= encabezado_funcion param_fun cuerpo_funcion
+                {: parser.validarFuncionConReturn();
+                   parser.tabla.cerrarAlcance(); :}
+        | encabezado_funcion error cuerpo_funcion
+                {: parser.validarFuncionConReturn();
+                   parser.tabla.cerrarAlcance(); :}
         ;
 
 encabezado_funcion ::= tipo:tipoRetorno identificador:nombre
-                       {: parser.agregarFuncion(nombre, tipoRetorno, nombreleft, nombreright);
+                       {: parser.validarTipoRetorno(nombre, tipoRetorno, nombreleft, nombreright);
+                          parser.agregarFuncion(nombre, tipoRetorno, nombreleft, nombreright);
                           parser.tabla.abrirAlcance(nombre); :}
                    ;
 
@@ -637,14 +748,18 @@ param_fun ::= PARENTESIS_ABRE params PARENTESIS_CIERRA
           | PARENTESIS_ABRE PARENTESIS_CIERRA
           ;
 
-llamada_fun ::= identificador:nombre PARENTESIS_ABRE args PARENTESIS_CIERRA
-                {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :}
+llamada_fun ::= identificador:nombre PARENTESIS_ABRE args:argumentos PARENTESIS_CIERRA
+                {: RESULT = parser.llamadaFuncion(nombre, argumentos, nombreleft, nombreright); :}
             | identificador:nombre PARENTESIS_ABRE PARENTESIS_CIERRA
-                {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :}
+                {: RESULT = parser.llamadaFuncion(nombre, new ArrayList<ResultadoExpresion>(), nombreleft, nombreright); :}
             ;
 
-args ::= expresion
-     | expresion COMA args
+args ::= expresion:valor
+            {: RESULT = new ArrayList<ResultadoExpresion>();
+               RESULT.add(valor); :}
+     | expresion:valor COMA args:resto
+            {: resto.add(0, valor);
+               RESULT = resto; :}
      ;
 
 principal ::= encabezado_principal cuerpo_funcion {: parser.tabla.cerrarAlcance(); :} ;

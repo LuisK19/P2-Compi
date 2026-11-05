@@ -1,0 +1,8 @@
+void principal є: :э ¿:
+  val string nombre Ͱ "ana" »
+  val bool activo Ͱ true »
+  val char inicial Ͱ 'a' »
+  read є: nombre :э »
+  read є: activo :э »
+  write є: inicial :э »
+:?
