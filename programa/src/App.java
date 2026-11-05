@@ -90,6 +90,7 @@ public class App {
                 "src/semantico/AnalizadorSemantico.java",
                 "src/semantico/RecolectorFunciones.java",
                 "src/codigo/GeneradorCodigo.java",
+                "src/codigo/EncabezadoFor.java",
                 "src/Analizador.java");
 
         if (resultado != 0) {

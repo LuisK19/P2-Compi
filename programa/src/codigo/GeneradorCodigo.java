@@ -327,6 +327,37 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Reserva el número de etiquetas de un for que se empieza a leer.
+     */
+    public void abrirFor() {
+        numerosCiclo.push(nuevoNumeroEtiqueta());
+    }
+
+    /**
+     * Genera un for con el número reservado en {@link #abrirFor()}: ejecuta el
+     * inicio una vez y luego funciona como un while que ejecuta la
+     * actualización al final de cada vuelta.
+     *
+     * @param encabezado inicio, condición y actualización del for
+     * @param cuerpo código del bloque del for
+     * @return código del ciclo
+     */
+    public String sentenciaFor(EncabezadoFor encabezado, String cuerpo) {
+        int numero = numerosCiclo.pop();
+        ResultadoExpresion condicion = encabezado.getCondicion();
+        return encabezado.getInicio()
+                + etiqueta("for_" + numero)
+                + condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto for_body_" + numero)
+                + instruccion("goto for_end_" + numero)
+                + etiqueta("for_body_" + numero)
+                + cuerpo
+                + encabezado.getActualizacion()
+                + instruccion("goto for_" + numero)
+                + etiqueta("for_end_" + numero);
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal

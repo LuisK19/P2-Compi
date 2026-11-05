@@ -3,6 +3,7 @@ package generated;
 import java_cup.runtime.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import src.codigo.EncabezadoFor;
 import src.codigo.GeneradorCodigo;
 import src.semantico.AnalizadorSemantico;
 import src.semantico.ResultadoExpresion;
@@ -116,7 +117,9 @@ non terminal ArrayList<ResultadoExpresion> args;
 non terminal inicio_bloque;
 non terminal String valor_arreglo_int, valor_arreglo_float;
 non terminal ArrayList<String> valores_arreglo_int, valores_arreglo_float;
-non terminal apertura_if, apertura_elif, apertura_while, apertura_for, encabezado_for, inicio_for, actualizacion_for;
+non terminal apertura_if, apertura_elif, apertura_while, apertura_for;
+non terminal String inicio_for, actualizacion_for;
+non terminal EncabezadoFor encabezado_for;
 non terminal param_write;
 non terminal String op_orden, op_igualdad;
 non terminal String negativo_int, negativo_float;
@@ -437,29 +440,33 @@ apertura_while ::= WHILE
                       parser.generador.abrirWhile(); :}
                ;
 
-sentencia_for ::= apertura_for encabezado_for bloque
+sentencia_for ::= apertura_for encabezado_for:encabezado bloque:cuerpo
                   {: parser.semantico.salirDeCiclo();
                      parser.semantico.cerrarAlcance();
-                     RESULT = ""; :}
+                     RESULT = parser.generador.sentenciaFor(encabezado, cuerpo); :}
               ;
 
 apertura_for ::= FOR:palabraFor
                  {: parser.semantico.entrarACiclo();
-                    parser.semantico.abrirAlcance("for linea " + (palabraForleft + 1)); :}
+                    parser.semantico.abrirAlcance("for linea " + (palabraForleft + 1));
+                    parser.generador.abrirFor(); :}
              ;
 
-encabezado_for ::= PARENTESIS_ABRE inicio_for expresion:valor FIN_SENT:fin actualizacion_for PARENTESIS_CIERRA
-                   {: parser.semantico.validarCondicion(valor, finleft, finright); :}
+encabezado_for ::= PARENTESIS_ABRE inicio_for:inicio expresion:valor FIN_SENT:fin actualizacion_for:actualizacion PARENTESIS_CIERRA
+                   {: parser.semantico.validarCondicion(valor, finleft, finright);
+                      RESULT = new EncabezadoFor(inicio, valor, actualizacion); :}
                ;
 
-inicio_for ::= declaracion
-           | asignacion
+inicio_for ::= declaracion:codigo   {: RESULT = codigo; :}
+           | asignacion:codigo    {: RESULT = codigo; :}
            ;
 
-actualizacion_for ::= expresion
+actualizacion_for ::= expresion:valor
+                    {: RESULT = valor.getCodigo(); :}
                   | identificador:nombre ASIGNACION:asig expresion:valor
                     {: String tipoDestino = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
-                       parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright); :}
+                       parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
+                       RESULT = parser.generador.asignacion(nombre, valor); :}
                   ;
 
 sentencia_return ::= RETURN:palabraReturn expresion:valor FIN_SENT
