@@ -114,7 +114,8 @@ non terminal programa, encabezado_principal;
 non terminal encabezado_funcion, params, parametro, param_fun;
 non terminal ArrayList<ResultadoExpresion> args;
 non terminal inicio_bloque;
-non terminal valor_arreglo_int, valor_arreglo_float;
+non terminal String valor_arreglo_int, valor_arreglo_float;
+non terminal ArrayList<String> valores_arreglo_int, valores_arreglo_float;
 non terminal elif_opc, else_opc, sentencia_elif, sentencia_else;
 non terminal apertura_while, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
 non terminal param_write;
@@ -125,7 +126,7 @@ non terminal String literal_bool, literal_char, literal_str;
 
 /* No terminales que devuelven un valor para la tabla de símbolos */
 non terminal String identificador, tipo;
-non terminal Integer literal_int, tamano_arreglo, valores_arreglo_int, valores_arreglo_float;
+non terminal Integer literal_int, tamano_arreglo;
 
 /* No terminales que devuelven el resultado de una expresión */
 non terminal ResultadoExpresion expresion, expr_log, operacion_log, negacion, operando_log;
@@ -168,20 +169,28 @@ literal_bool  ::= TRUE            {: RESULT = "true"; :}
 literal_char  ::= CARACTER:valor  {: RESULT = valor; :} ;
 literal_str   ::= CADENA:valor    {: RESULT = valor; :} ;
 
-valores_arreglo_int ::= valor_arreglo_int                                   {: RESULT = 1; :}
-                    | valor_arreglo_int COMA valores_arreglo_int:cantidad   {: RESULT = cantidad + 1; :}
+valores_arreglo_int ::= valor_arreglo_int:valor
+                        {: RESULT = new ArrayList<String>();
+                           RESULT.add(valor); :}
+                    | valor_arreglo_int:valor COMA valores_arreglo_int:resto
+                        {: resto.add(0, valor);
+                           RESULT = resto; :}
                     ;
 
-valor_arreglo_int ::= literal_int
-                  | negativo_int
+valor_arreglo_int ::= literal_int:valor   {: RESULT = String.valueOf(valor); :}
+                  | negativo_int:valor  {: RESULT = valor; :}
                   ;
 
-valores_arreglo_float ::= valor_arreglo_float                                     {: RESULT = 1; :}
-                      | valor_arreglo_float COMA valores_arreglo_float:cantidad   {: RESULT = cantidad + 1; :}
+valores_arreglo_float ::= valor_arreglo_float:valor
+                          {: RESULT = new ArrayList<String>();
+                             RESULT.add(valor); :}
+                      | valor_arreglo_float:valor COMA valores_arreglo_float:resto
+                          {: resto.add(0, valor);
+                             RESULT = resto; :}
                       ;
 
-valor_arreglo_float ::= literal_float
-                    | negativo_float
+valor_arreglo_float ::= literal_float:valor   {: RESULT = GeneradorCodigo.textoFlotante(valor); :}
+                    | negativo_float:valor  {: RESULT = valor; :}
                     ;
 
 declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
@@ -197,16 +206,16 @@ declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:ta
                         {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            RESULT = ""; :}
-                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_int:cantidad LLAVE_CIERRA FIN_SENT
+                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_int:valores LLAVE_CIERRA FIN_SENT
                         {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           parser.semantico.validarValoresArreglo(nombre, tipoDato, tamano, "int", cantidad, nombreleft, nombreright);
+                           parser.semantico.validarValoresArreglo(nombre, tipoDato, tamano, "int", valores.size(), nombreleft, nombreright);
                            parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           RESULT = ""; :}
-                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_float:cantidad LLAVE_CIERRA FIN_SENT
+                           RESULT = parser.generador.valoresIniciales(nombre, "int", valores); :}
+                    | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_float:valores LLAVE_CIERRA FIN_SENT
                         {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           parser.semantico.validarValoresArreglo(nombre, tipoDato, tamano, "float", cantidad, nombreleft, nombreright);
+                           parser.semantico.validarValoresArreglo(nombre, tipoDato, tamano, "float", valores.size(), nombreleft, nombreright);
                            parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           RESULT = ""; :}
+                           RESULT = parser.generador.valoresIniciales(nombre, "float", valores); :}
                     ;
 
 tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = tamano; :} ;
@@ -219,7 +228,7 @@ asignacion ::= identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
                 {: String tipoDestino = parser.semantico.tipoDeArreglo(nombre, nombreleft, nombreright);
                    parser.semantico.validarIndice(indice, corcheteleft, corcheteright);
                    parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
-                   RESULT = ""; :}
+                   RESULT = parser.generador.asignacionElemento(nombre, indice, valor); :}
            ;
 
 expresion ::= expr_log:valor {: RESULT = valor; :} ;

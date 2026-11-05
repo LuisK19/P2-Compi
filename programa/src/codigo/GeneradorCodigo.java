@@ -1,6 +1,7 @@
 package src.codigo;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import src.semantico.ResultadoExpresion;
 
@@ -142,6 +143,40 @@ public class GeneradorCodigo {
      */
     public String asignacion(String nombre, ResultadoExpresion valor) {
         return valor.getCodigo() + instruccion(nombre + " = " + valor.getDireccion());
+    }
+
+    /**
+     * Genera la asignación de una expresión a un elemento de arreglo: el código
+     * del índice, el código del valor y la copia al elemento.
+     *
+     * @param nombre nombre del arreglo
+     * @param indice expresión del índice
+     * @param valor expresión asignada
+     * @return código de la asignación
+     */
+    public String asignacionElemento(String nombre, ResultadoExpresion indice,
+            ResultadoExpresion valor) {
+        String copia = nombre + "[" + indice.getDireccion() + "] = " + valor.getDireccion();
+        return indice.getCodigo() + valor.getCodigo() + instruccion(copia);
+    }
+
+    /**
+     * Genera la asignación de los valores iniciales de un arreglo, un elemento
+     * a la vez desde la posición 0.
+     *
+     * @param nombre nombre del arreglo
+     * @param tipo tipo de los elementos
+     * @param valores literales en el orden en que se escribieron
+     * @return código de las asignaciones
+     */
+    public String valoresIniciales(String nombre, String tipo, ArrayList<String> valores) {
+        String codigo = "";
+        for (int posicion = 0; posicion < valores.size(); posicion++) {
+            ResultadoExpresion indice = cargarEnTemporal("int", String.valueOf(posicion));
+            ResultadoExpresion valor = cargarEnTemporal(tipo, valores.get(posicion));
+            codigo += asignacionElemento(nombre, indice, valor);
+        }
+        return codigo;
     }
 
     /**
