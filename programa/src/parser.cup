@@ -229,15 +229,18 @@ expr_log ::= operacion_log:valor {: RESULT = valor; :}
          ;
 
 operacion_log ::= operando_log:izquierdo OP_AND:op operando_log:derecho
-                    {: RESULT = parser.semantico.operacionLogica("λ", izquierdo, derecho, opleft, opright); :}
+                    {: String tipo = parser.semantico.operacionLogica("λ", izquierdo, derecho, opleft, opright).getTipo();
+                       RESULT = parser.generador.operacionBinaria(tipo, izquierdo, "λ", derecho); :}
               | operando_log:izquierdo OP_OR:op operando_log:derecho
-                    {: RESULT = parser.semantico.operacionLogica("θ", izquierdo, derecho, opleft, opright); :}
+                    {: String tipo = parser.semantico.operacionLogica("θ", izquierdo, derecho, opleft, opright).getTipo();
+                       RESULT = parser.generador.operacionBinaria(tipo, izquierdo, "θ", derecho); :}
               | negacion:valor
                     {: RESULT = valor; :}
               ;
 
 negacion ::= OP_NOT:op operando_log:operando
-                {: RESULT = parser.semantico.negacionLogica(operando, opleft, opright); :}
+                {: String tipo = parser.semantico.negacionLogica(operando, opleft, opright).getTipo();
+                   RESULT = parser.generador.operacionUnaria(tipo, "Σ", operando); :}
          ;
 
 operando_log ::= PARENTESIS_ABRE expresion:valor PARENTESIS_CIERRA {: RESULT = valor; :}
@@ -249,9 +252,11 @@ expr_rel ::= operacion_rel:valor {: RESULT = valor; :}
          ;
 
 operacion_rel ::= operando_rel:izquierdo op_orden:op operando_rel:derecho
-                    {: RESULT = parser.semantico.operacionRelacional(op, izquierdo, derecho, opleft, opright); :}
+                    {: String tipo = parser.semantico.operacionRelacional(op, izquierdo, derecho, opleft, opright).getTipo();
+                       RESULT = parser.generador.operacionBinaria(tipo, izquierdo, op, derecho); :}
               | operando_igualdad:izquierdo op_igualdad:op operando_igualdad:derecho
-                    {: RESULT = parser.semantico.operacionRelacional(op, izquierdo, derecho, opleft, opright); :}
+                    {: String tipo = parser.semantico.operacionRelacional(op, izquierdo, derecho, opleft, opright).getTipo();
+                       RESULT = parser.generador.operacionBinaria(tipo, izquierdo, op, derecho); :}
               ;
 
 operando_rel ::= CORCHETE_ABRE expr_arit:valor CORCHETE_CIERRA {: RESULT = valor; :} ;

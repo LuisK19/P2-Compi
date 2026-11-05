@@ -64,7 +64,7 @@ public class GeneradorCodigo {
 
     /**
      * Carga un literal o el valor de una variable en un temporal nuevo, por
-     * ejemplo "t1 = 5" o "t2 = x".
+     * ejemplo "i1 = 5" o "i2 = x".
      *
      * @param tipo tipo del valor cargado
      * @param valor literal o nombre de la variable
@@ -95,6 +95,23 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Genera una operación unaria: el código del operando y la instrucción que
+     * guarda el resultado en un temporal nuevo.
+     *
+     * @param tipoResultado tipo del resultado de la operación
+     * @param operador símbolo del operador
+     * @param operando operando de la operación
+     * @return resultado con el temporal de la operación y todo su código
+     */
+    public ResultadoExpresion operacionUnaria(String tipoResultado, String operador,
+            ResultadoExpresion operando) {
+        String temporal = nuevoTemporal(tipoResultado);
+        String operacion = temporal + " = " + operador + " " + operando.getDireccion();
+        String codigo = operando.getCodigo() + instruccion(operacion);
+        return new ResultadoExpresion(tipoResultado, temporal, codigo);
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal
@@ -107,7 +124,7 @@ public class GeneradorCodigo {
     /**
      * Convierte un texto en una instrucción de código intermedio (una línea).
      *
-     * @param texto instrucción, por ejemplo "t3 = t1 + t2"
+     * @param texto instrucción, por ejemplo "i3 = i1 + i2"
      * @return la instrucción terminada en salto de línea
      */
     public static String instruccion(String texto) {
