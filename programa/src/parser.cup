@@ -427,12 +427,15 @@ estructura_control ::= sentencia_if:codigo     {: RESULT = codigo; :}
                    | sentencia_for:codigo      {: RESULT = codigo; :}
                    ;
 
-sentencia_while ::= apertura_while condicion bloque
+sentencia_while ::= apertura_while condicion:condicion bloque:cuerpo
                     {: parser.semantico.salirDeCiclo();
-                       RESULT = ""; :}
+                       RESULT = parser.generador.sentenciaWhile(condicion, cuerpo); :}
                 ;
 
-apertura_while ::= WHILE {: parser.semantico.entrarACiclo(); :} ;
+apertura_while ::= WHILE
+                   {: parser.semantico.entrarACiclo();
+                      parser.generador.abrirWhile(); :}
+               ;
 
 sentencia_for ::= apertura_for encabezado_for bloque
                   {: parser.semantico.salirDeCiclo();

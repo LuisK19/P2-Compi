@@ -15,6 +15,7 @@ public class GeneradorCodigo {
     private int contadorEtiquetas = 0;
     private Stack<Integer> numerosIf = new Stack<>();
     private Stack<Integer> numerosElif = new Stack<>();
+    private Stack<Integer> numerosCiclo = new Stack<>();
 
     /**
      * Crea un temporal nuevo para un valor del tipo indicado. Cada tipo tiene
@@ -296,6 +297,33 @@ public class GeneradorCodigo {
                 + cuerpo
                 + instruccion("goto if_end_" + numeroIf)
                 + etiqueta("elif_false_" + numero);
+    }
+
+    /**
+     * Reserva el número de etiquetas de un while que se empieza a leer.
+     */
+    public void abrirWhile() {
+        numerosCiclo.push(nuevoNumeroEtiqueta());
+    }
+
+    /**
+     * Genera un while con el número reservado en {@link #abrirWhile()}: evalúa
+     * la condición al inicio de cada vuelta y sale cuando es falsa.
+     *
+     * @param condicion expresión booleana de la condición
+     * @param cuerpo código del bloque del while
+     * @return código del ciclo
+     */
+    public String sentenciaWhile(ResultadoExpresion condicion, String cuerpo) {
+        int numero = numerosCiclo.pop();
+        return etiqueta("while_" + numero)
+                + condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto while_body_" + numero)
+                + instruccion("goto while_end_" + numero)
+                + etiqueta("while_body_" + numero)
+                + cuerpo
+                + instruccion("goto while_" + numero)
+                + etiqueta("while_end_" + numero);
     }
 
     /**
