@@ -1,0 +1,21 @@
+void principal є: :э ¿:
+  val int a Ͱ 7 »
+  val int b Ͱ 2 »
+  val float x Ͱ 7.5 »
+  val float y Ͱ 2.5 »
+  val char letra Ͱ 'a' »
+  val bool activo Ͱ true »
+  val int suma Ͱ a + b * 3 - 1 »
+  val int division Ͱ a // b mod 3 »
+  val int potencia Ͱ b pot 3 »
+  val float real Ͱ x / y + x * y - -1.5 »
+  val bool menor Ͱ ʃ:a:ʅ < ʃ:b + 1:ʅ »
+  val bool igualReal Ͱ ʃ:x:ʅ == ʃ:y:ʅ »
+  val bool igualLetra Ͱ ʃ:letra:ʅ != ʃ:'b':ʅ »
+  val bool igualBool Ͱ ʃ:activo:ʅ == ʃ:false:ʅ »
+  val bool ambos Ͱ є: menor :э λ є: Σ є: igualReal :э :э »
+  val bool alguno Ͱ є: ʃ:a:ʅ >= ʃ:7:ʅ :э θ є: activo :э »
+  write є: suma :э »
+  write є: real :э »
+  write є: ambos :э »
+:?
