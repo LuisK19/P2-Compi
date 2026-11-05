@@ -3,6 +3,7 @@ package src.codigo;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Stack;
 import src.semantico.ResultadoExpresion;
 
 /**
@@ -12,6 +13,7 @@ import src.semantico.ResultadoExpresion;
 public class GeneradorCodigo {
     private HashMap<String, Integer> contadoresTemporales = new HashMap<>();
     private int contadorEtiquetas = 0;
+    private Stack<Integer> numerosIf = new Stack<>();
 
     /**
      * Crea un temporal nuevo para un valor del tipo indicado. Cada tipo tiene
@@ -235,6 +237,39 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Reserva el número de etiquetas de un if que se empieza a leer. Se guarda
+     * en una pila porque puede haber if dentro de otros if.
+     */
+    public void abrirIf() {
+        numerosIf.push(nuevoNumeroEtiqueta());
+    }
+
+    /**
+     * Genera un if completo con el número reservado en {@link #abrirIf()}. Si la
+     * condición es verdadera se ejecuta el cuerpo; si no, las ramas elif y else.
+     *
+     * @param condicion expresión booleana de la condición
+     * @param cuerpo código del bloque del if
+     * @param ramasElif código de las ramas elif (vacío si no hay)
+     * @param cuerpoElse código del bloque else (vacío si no hay)
+     * @return código de toda la estructura
+     */
+    public String sentenciaIf(ResultadoExpresion condicion, String cuerpo, String ramasElif,
+            String cuerpoElse) {
+        int numero = numerosIf.pop();
+        return condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto if_true_" + numero)
+                + instruccion("goto if_false_" + numero)
+                + etiqueta("if_true_" + numero)
+                + cuerpo
+                + instruccion("goto if_end_" + numero)
+                + etiqueta("if_false_" + numero)
+                + ramasElif
+                + cuerpoElse
+                + etiqueta("if_end_" + numero);
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal
@@ -252,5 +287,15 @@ public class GeneradorCodigo {
      */
     public static String instruccion(String texto) {
         return texto + "\n";
+    }
+
+    /**
+     * Convierte un nombre en una línea de etiqueta, por ejemplo "if_end_1:".
+     *
+     * @param nombre nombre de la etiqueta
+     * @return la etiqueta terminada en salto de línea
+     */
+    public static String etiqueta(String nombre) {
+        return instruccion(nombre + ":");
     }
 }
