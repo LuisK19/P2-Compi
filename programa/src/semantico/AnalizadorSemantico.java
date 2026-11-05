@@ -120,14 +120,14 @@ public class AnalizadorSemantico {
         }
     }
 
-    /** Valida que los valores iniciales de un arreglo sean de su tipo y llenen su tamaño. */
+    /** Valida que los valores iniciales de un arreglo sean de su tipo y no excedan su tamaño. */
     public void validarValoresArreglo(String nombre, String tipo, int tamano, String tipoValores, int cantidad,
             int linea, int columna) {
         if (esTipoDeArreglo(tipo) && !tipo.equals(tipoValores)) {
             reportarError("el arreglo '" + nombre + "' es de tipo " + tipo
                     + " pero sus valores son de tipo " + tipoValores, linea, columna);
         }
-        if (tamano > 0 && cantidad != tamano) {
+        if (tamano > 0 && cantidad > tamano) {
             reportarError("el arreglo '" + nombre + "' tiene tamano " + tamano
                     + " pero recibe " + cantidad + " valores", linea, columna);
         }

@@ -162,18 +162,25 @@ public class GeneradorCodigo {
 
     /**
      * Genera la asignación de los valores iniciales de un arreglo, un elemento
-     * a la vez desde la posición 0.
+     * a la vez desde la posición 0. Las posiciones sin valor escrito reciben el
+     * valor por defecto del tipo.
      *
      * @param nombre nombre del arreglo
      * @param tipo tipo de los elementos
-     * @param valores literales en el orden en que se escribieron
+     * @param tamano cantidad de elementos del arreglo
+     * @param valores literales en el orden en que se escribieron (puede estar vacía)
      * @return código de las asignaciones
      */
-    public String valoresIniciales(String nombre, String tipo, ArrayList<String> valores) {
+    public String valoresIniciales(String nombre, String tipo, int tamano,
+            ArrayList<String> valores) {
         String codigo = "";
-        for (int posicion = 0; posicion < valores.size(); posicion++) {
+        for (int posicion = 0; posicion < tamano; posicion++) {
+            String textoValor = valorPorDefecto(tipo);
+            if (posicion < valores.size()) {
+                textoValor = valores.get(posicion);
+            }
             ResultadoExpresion indice = cargarEnTemporal("int", String.valueOf(posicion));
-            ResultadoExpresion valor = cargarEnTemporal(tipo, valores.get(posicion));
+            ResultadoExpresion valor = cargarEnTemporal(tipo, textoValor);
             codigo += asignacionElemento(nombre, indice, valor);
         }
         return codigo;

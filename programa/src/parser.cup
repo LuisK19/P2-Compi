@@ -205,17 +205,17 @@ declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
 declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano FIN_SENT
                         {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           RESULT = ""; :}
+                           RESULT = parser.generador.valoresIniciales(nombre, tipoDato, tamano, new ArrayList<String>()); :}
                     | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_int:valores LLAVE_CIERRA FIN_SENT
                         {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            parser.semantico.validarValoresArreglo(nombre, tipoDato, tamano, "int", valores.size(), nombreleft, nombreright);
                            parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           RESULT = parser.generador.valoresIniciales(nombre, "int", valores); :}
+                           RESULT = parser.generador.valoresIniciales(nombre, tipoDato, tamano, valores); :}
                     | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_float:valores LLAVE_CIERRA FIN_SENT
                         {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            parser.semantico.validarValoresArreglo(nombre, tipoDato, tamano, "float", valores.size(), nombreleft, nombreright);
                            parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           RESULT = parser.generador.valoresIniciales(nombre, "float", valores); :}
+                           RESULT = parser.generador.valoresIniciales(nombre, tipoDato, tamano, valores); :}
                     ;
 
 tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = tamano; :} ;
