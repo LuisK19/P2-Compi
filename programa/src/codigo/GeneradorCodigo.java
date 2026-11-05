@@ -128,9 +128,53 @@ public class GeneradorCodigo {
         ResultadoExpresion valorAnterior = cargarEnTemporal(tipo, nombre);
         ResultadoExpresion uno = cargarEnTemporal(tipo, textoUno);
         ResultadoExpresion valorNuevo = operacionBinaria(tipo, valorAnterior, operador, uno);
-        String codigo = valorNuevo.getCodigo()
-                + instruccion(nombre + " = " + valorNuevo.getDireccion());
+        String codigo = asignacion(nombre, valorNuevo);
         return new ResultadoExpresion(tipo, valorAnterior.getDireccion(), codigo);
+    }
+
+    /**
+     * Genera la asignación de una expresión a una variable: el código de la
+     * expresión y la copia de su temporal a la variable.
+     *
+     * @param nombre nombre de la variable
+     * @param valor expresión asignada
+     * @return código de la asignación
+     */
+    public String asignacion(String nombre, ResultadoExpresion valor) {
+        return valor.getCodigo() + instruccion(nombre + " = " + valor.getDireccion());
+    }
+
+    /**
+     * Genera la instrucción que da el valor inicial a una variable declarada
+     * sin valor.
+     *
+     * @param nombre nombre de la variable
+     * @param tipo tipo de la variable
+     * @return código de la inicialización
+     */
+    public String valorInicial(String nombre, String tipo) {
+        return instruccion(nombre + " = " + valorPorDefecto(tipo));
+    }
+
+    /**
+     * Valor con el que empieza una variable de cada tipo.
+     *
+     * @param tipo tipo de la variable
+     * @return el valor por defecto como texto
+     */
+    private static String valorPorDefecto(String tipo) {
+        switch (tipo) {
+            case "float":
+                return "0.0";
+            case "bool":
+                return "false";
+            case "char":
+                return "' '";
+            case "string":
+                return "\"\"";
+            default:
+                return "0";
+        }
     }
 
     /**

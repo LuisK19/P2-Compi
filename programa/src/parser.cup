@@ -186,11 +186,11 @@ valor_arreglo_float ::= literal_float
 
 declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
                 {: parser.semantico.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
-                   RESULT = ""; :}
+                   RESULT = parser.generador.valorInicial(nombre, tipoDato); :}
             | VAL tipo:tipoDato identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
                 {: parser.semantico.validarAsignacion(nombre, tipoDato, valor, asigleft, asigright);
                    parser.semantico.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
-                   RESULT = ""; :}
+                   RESULT = parser.generador.asignacion(nombre, valor); :}
             ;
 
 declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano FIN_SENT
@@ -214,7 +214,7 @@ tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = 
 asignacion ::= identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
                 {: String tipoDestino = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
                    parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
-                   RESULT = ""; :}
+                   RESULT = parser.generador.asignacion(nombre, valor); :}
            | identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice CORCHETE_CIERRA ASIGNACION:asig expresion:valor FIN_SENT
                 {: String tipoDestino = parser.semantico.tipoDeArreglo(nombre, nombreleft, nombreright);
                    parser.semantico.validarIndice(indice, corcheteleft, corcheteright);
