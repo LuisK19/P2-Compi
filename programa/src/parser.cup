@@ -209,6 +209,12 @@ parser code {:
         }
     }
 
+    void validarCondicion(ResultadoExpresion condicion, int linea, int columna) {
+        if (!condicion.esError() && !condicion.getTipo().equals("bool")) {
+            reportarErrorSemantico("la condicion debe ser de tipo bool, no " + condicion.getTipo(), linea, columna);
+        }
+    }
+
     ResultadoExpresion operacionPotencia(ResultadoExpresion base, ResultadoExpresion exponente,
             int linea, int columna) {
         ResultadoExpresion resultado = operacionAritmetica("pot", base, exponente, linea, columna);
@@ -527,7 +533,8 @@ sentencia ::= declaracion
           | sentencia_break
           ;
 
-condicion ::= PARENTESIS_ABRE expresion PARENTESIS_CIERRA
+condicion ::= PARENTESIS_ABRE:parentesis expresion:valor PARENTESIS_CIERRA
+                {: parser.validarCondicion(valor, parentesisleft, parentesisright); :}
           | PARENTESIS_ABRE error PARENTESIS_CIERRA
           ;
 
@@ -572,7 +579,9 @@ sentencia_for ::= apertura_for encabezado_for bloque {: parser.tabla.cerrarAlcan
 
 apertura_for ::= FOR:palabraFor {: parser.tabla.abrirAlcance("for linea " + (palabraForleft + 1)); :} ;
 
-encabezado_for ::= PARENTESIS_ABRE inicio_for expresion FIN_SENT actualizacion_for PARENTESIS_CIERRA ;
+encabezado_for ::= PARENTESIS_ABRE inicio_for expresion:valor FIN_SENT:fin actualizacion_for PARENTESIS_CIERRA
+                   {: parser.validarCondicion(valor, finleft, finright); :}
+               ;
 
 inicio_for ::= declaracion
            | asignacion
