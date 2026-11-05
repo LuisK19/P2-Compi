@@ -1,0 +1,8 @@
+void principal є: :э ¿:
+  val char c Ͱ 'a' »
+  val bool b Ͱ true »
+  val string s Ͱ "hola" »
+  c ++ »
+  b -- »
+  s ++ »
+:?

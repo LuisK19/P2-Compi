@@ -1,0 +1,8 @@
+void principal є: :э ¿:
+  val int i Ͱ 4 »
+  val bool b Ͱ true »
+  val bool r1 Ͱ є: i :э λ є: b :э »
+  val bool r2 Ͱ є: b :э θ є: 'c' :э »
+  val bool r3 Ͱ Σ є: 2.5 :э »
+  val bool r4 Ͱ є: "si" :э λ є: "no" :э »
+:?
