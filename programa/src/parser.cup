@@ -285,6 +285,20 @@ parser code {:
         }
     }
 
+    void validarTipoRead(String nombre, String tipo, int linea, int columna) {
+        if (tipo.equals("string") || tipo.equals("bool")) {
+            reportarErrorSemantico("read solo puede leer variables int, float o char y '" + nombre
+                    + "' es de tipo " + tipo, linea, columna);
+        }
+    }
+
+    void validarTipoWrite(String nombre, String tipo, int linea, int columna) {
+        if (tipo.equals("char")) {
+            reportarErrorSemantico("write solo puede escribir string, int, bool o float y '" + nombre
+                    + "' es de tipo char", linea, columna);
+        }
+    }
+
     void validarTipoRetorno(String nombre, String tipo, int linea, int columna) {
         if (!tipo.equals("int") && !tipo.equals("float") && !tipo.equals("char") && !tipo.equals("bool")) {
             reportarErrorSemantico("la funcion '" + nombre + "' no puede retornar " + tipo
@@ -675,12 +689,15 @@ param_write ::= literal_str
             | literal_bool
             | literal_float
             | negativo
-            | identificador:nombre {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
+            | identificador:nombre
+                {: String tipo = parser.tipoDeVariable(nombre, nombreleft, nombreright);
+                   parser.validarTipoWrite(nombre, tipo, nombreleft, nombreright); :}
             | acceso_arreglo
             ;
 
 sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA FIN_SENT
-                   {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
+                   {: String tipo = parser.tipoDeVariable(nombre, nombreleft, nombreright);
+                      parser.validarTipoRead(nombre, tipo, nombreleft, nombreright); :}
                ;
 
 funcion ::= encabezado_funcion param_fun cuerpo_funcion
