@@ -119,7 +119,7 @@ non terminal elif_opc, else_opc, sentencia_elif, sentencia_else;
 non terminal apertura_while, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
 non terminal param_write;
 non terminal String op_orden, op_igualdad;
-non terminal negativo_int, negativo_float;
+non terminal String negativo_int, negativo_float;
 non terminal Double literal_float;
 non terminal String literal_bool, literal_char, literal_str;
 
@@ -330,25 +330,31 @@ acceso_arreglo ::= identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice 
                       RESULT = new ResultadoExpresion(parser.semantico.tipoDeArreglo(nombre, nombreleft, nombreright)); :}
                ;
 
-negativo ::= negativo_int
-                {: RESULT = new ResultadoExpresion("int");
+negativo ::= negativo_int:valor
+                {: RESULT = parser.generador.cargarEnTemporal("int", valor);
                    RESULT.marcarLiteralNegativo(); :}
-         | negativo_float
-                {: RESULT = new ResultadoExpresion("float");
+         | negativo_float:valor
+                {: RESULT = parser.generador.cargarEnTemporal("float", valor);
                    RESULT.marcarLiteralNegativo(); :}
          ;
 
-negativo_int ::= OP_MENOS literal_int ;
-negativo_float ::= OP_MENOS literal_float ;
+negativo_int ::= OP_MENOS literal_int:valor      {: RESULT = "-" + valor; :} ;
+negativo_float ::= OP_MENOS literal_float:valor  {: RESULT = "-" + GeneradorCodigo.textoFlotante(valor); :} ;
 
-incremento ::= identificador:nombre OP_INC {: RESULT = parser.semantico.operacionIncremento("++", nombre, nombreleft, nombreright); :} ;
-decremento ::= identificador:nombre OP_DEC {: RESULT = parser.semantico.operacionIncremento("--", nombre, nombreleft, nombreright); :} ;
+incremento ::= identificador:nombre OP_INC
+                {: String tipo = parser.semantico.operacionIncremento("++", nombre, nombreleft, nombreright).getTipo();
+                   RESULT = parser.generador.incremento(tipo, nombre, "+"); :}
+           ;
+decremento ::= identificador:nombre OP_DEC
+                {: String tipo = parser.semantico.operacionIncremento("--", nombre, nombreleft, nombreright).getTipo();
+                   RESULT = parser.generador.incremento(tipo, nombre, "-"); :}
+           ;
 
 sentencia ::= declaracion:codigo           {: RESULT = codigo; :}
           | declaracion_arreglo:codigo     {: RESULT = codigo; :}
           | asignacion:codigo              {: RESULT = codigo; :}
-          | incremento FIN_SENT            {: RESULT = ""; :}
-          | decremento FIN_SENT            {: RESULT = ""; :}
+          | incremento:valor FIN_SENT      {: RESULT = valor.getCodigo(); :}
+          | decremento:valor FIN_SENT      {: RESULT = valor.getCodigo(); :}
           | llamada_fun FIN_SENT           {: RESULT = ""; :}
           | sentencia_write:codigo         {: RESULT = codigo; :}
           | sentencia_read:codigo          {: RESULT = codigo; :}

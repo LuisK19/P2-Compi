@@ -112,6 +112,28 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Genera un incremento o decremento de una variable. El valor de la
+     * expresión es el que tenía la variable antes de cambiar.
+     *
+     * @param tipo tipo de la variable (int o float)
+     * @param nombre nombre de la variable
+     * @param operador "+" para ++ o "-" para --
+     * @return resultado con el temporal del valor anterior y todo el código
+     */
+    public ResultadoExpresion incremento(String tipo, String nombre, String operador) {
+        String textoUno = "1";
+        if (tipo.equals("float")) {
+            textoUno = "1.0";
+        }
+        ResultadoExpresion valorAnterior = cargarEnTemporal(tipo, nombre);
+        ResultadoExpresion uno = cargarEnTemporal(tipo, textoUno);
+        ResultadoExpresion valorNuevo = operacionBinaria(tipo, valorAnterior, operador, uno);
+        String codigo = valorNuevo.getCodigo()
+                + instruccion(nombre + " = " + valorNuevo.getDireccion());
+        return new ResultadoExpresion(tipo, valorAnterior.getDireccion(), codigo);
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal
