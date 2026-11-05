@@ -1,0 +1,15 @@
+int entero є: :э ¿:
+  return 2.5 »
+:?
+
+bool comparar є: int a :э ¿:
+  return a »
+:?
+
+char letra є: :э ¿:
+  return "texto" »
+:?
+
+void principal є: :э ¿:
+  write є: "fin" :э »
+:?

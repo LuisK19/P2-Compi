@@ -1,0 +1,7 @@
+float promedio є: float a, float b :э ¿:
+  val float suma Ͱ a + b »
+:?
+
+void principal є: :э ¿:
+  val float p Ͱ promedio є: 1.5, 2.5 :э »
+:?
