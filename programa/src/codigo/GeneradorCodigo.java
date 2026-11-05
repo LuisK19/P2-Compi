@@ -14,6 +14,7 @@ public class GeneradorCodigo {
     private HashMap<String, Integer> contadoresTemporales = new HashMap<>();
     private int contadorEtiquetas = 0;
     private Stack<Integer> numerosIf = new Stack<>();
+    private Stack<Integer> numerosElif = new Stack<>();
 
     /**
      * Crea un temporal nuevo para un valor del tipo indicado. Cada tipo tiene
@@ -267,6 +268,34 @@ public class GeneradorCodigo {
                 + ramasElif
                 + cuerpoElse
                 + etiqueta("if_end_" + numero);
+    }
+
+    /**
+     * Reserva el número de etiquetas de un elif que se empieza a leer.
+     */
+    public void abrirElif() {
+        numerosElif.push(nuevoNumeroEtiqueta());
+    }
+
+    /**
+     * Genera una rama elif con el número reservado en {@link #abrirElif()}. Si
+     * la condición es verdadera se ejecuta el cuerpo y se salta al final del if
+     * al que pertenece; si no, se sigue con la rama siguiente.
+     *
+     * @param condicion expresión booleana de la condición
+     * @param cuerpo código del bloque del elif
+     * @return código de la rama
+     */
+    public String ramaElif(ResultadoExpresion condicion, String cuerpo) {
+        int numero = numerosElif.pop();
+        int numeroIf = numerosIf.peek();
+        return condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto elif_true_" + numero)
+                + instruccion("goto elif_false_" + numero)
+                + etiqueta("elif_true_" + numero)
+                + cuerpo
+                + instruccion("goto if_end_" + numeroIf)
+                + etiqueta("elif_false_" + numero);
     }
 
     /**

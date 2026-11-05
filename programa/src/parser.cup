@@ -116,7 +116,7 @@ non terminal ArrayList<ResultadoExpresion> args;
 non terminal inicio_bloque;
 non terminal String valor_arreglo_int, valor_arreglo_float;
 non terminal ArrayList<String> valores_arreglo_int, valores_arreglo_float;
-non terminal apertura_if, apertura_while, apertura_for, encabezado_for, inicio_for, actualizacion_for;
+non terminal apertura_if, apertura_elif, apertura_while, apertura_for, encabezado_for, inicio_for, actualizacion_for;
 non terminal param_write;
 non terminal String op_orden, op_igualdad;
 non terminal String negativo_int, negativo_float;
@@ -394,7 +394,11 @@ else_opc ::= sentencia_else:codigo   {: RESULT = codigo; :}
          |                         {: RESULT = ""; :}
          ;
 
-sentencia_elif ::= ELIF condicion bloque {: RESULT = ""; :} ;
+sentencia_elif ::= apertura_elif condicion:condicion bloque:cuerpo
+                   {: RESULT = parser.generador.ramaElif(condicion, cuerpo); :}
+               ;
+
+apertura_elif ::= ELIF {: parser.generador.abrirElif(); :} ;
 sentencia_else ::= ELSE bloque:codigo    {: RESULT = codigo; :} ;
 
 bloque ::= inicio_bloque lista_lineas:codigo LLAVE_CIERRA
