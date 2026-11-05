@@ -134,6 +134,21 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Genera la lectura de un elemento de arreglo: el código del índice y la
+     * instrucción que copia el elemento a un temporal nuevo.
+     *
+     * @param tipo tipo de los elementos del arreglo
+     * @param nombre nombre del arreglo
+     * @param indice expresión del índice
+     * @return resultado con el temporal del elemento y todo su código
+     */
+    public ResultadoExpresion accesoArreglo(String tipo, String nombre, ResultadoExpresion indice) {
+        String temporal = nuevoTemporal(tipo);
+        String acceso = temporal + " = " + nombre + "[" + indice.getDireccion() + "]";
+        return new ResultadoExpresion(tipo, temporal, indice.getCodigo() + instruccion(acceso));
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal

@@ -327,7 +327,8 @@ atomo ::= literal:valor                                     {: RESULT = valor; :
 
 acceso_arreglo ::= identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice CORCHETE_CIERRA
                    {: parser.semantico.validarIndice(indice, corcheteleft, corcheteright);
-                      RESULT = new ResultadoExpresion(parser.semantico.tipoDeArreglo(nombre, nombreleft, nombreright)); :}
+                      String tipo = parser.semantico.tipoDeArreglo(nombre, nombreleft, nombreright);
+                      RESULT = parser.generador.accesoArreglo(tipo, nombre, indice); :}
                ;
 
 negativo ::= negativo_int:valor
