@@ -225,6 +225,13 @@ parser code {:
         return resultado;
     }
 
+    void validarTipoRetorno(String nombre, String tipo, int linea, int columna) {
+        if (!tipo.equals("int") && !tipo.equals("float") && !tipo.equals("char") && !tipo.equals("bool")) {
+            reportarErrorSemantico("la funcion '" + nombre + "' no puede retornar " + tipo
+                    + "; solo se permite int, float, char o bool", linea, columna);
+        }
+    }
+
     boolean esTipoDeArreglo(String tipo) {
         return tipo.equals("int") || tipo.equals("float");
     }
@@ -616,7 +623,8 @@ funcion ::= encabezado_funcion param_fun cuerpo_funcion {: parser.tabla.cerrarAl
         ;
 
 encabezado_funcion ::= tipo:tipoRetorno identificador:nombre
-                       {: parser.agregarFuncion(nombre, tipoRetorno, nombreleft, nombreright);
+                       {: parser.validarTipoRetorno(nombre, tipoRetorno, nombreleft, nombreright);
+                          parser.agregarFuncion(nombre, tipoRetorno, nombreleft, nombreright);
                           parser.tabla.abrirAlcance(nombre); :}
                    ;
 
