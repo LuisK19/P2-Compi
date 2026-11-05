@@ -76,7 +76,26 @@ public class GeneradorCodigo {
     }
 
     /**
-     * Escribe un literal flotante sin notación científica 
+     * Genera una operación binaria: el código de ambos operandos y la
+     * instrucción que guarda el resultado en un temporal nuevo.
+     *
+     * @param tipoResultado tipo del resultado de la operación
+     * @param izquierdo operando izquierdo
+     * @param operador símbolo del operador
+     * @param derecho operando derecho
+     * @return resultado con el temporal de la operación y todo su código
+     */
+    public ResultadoExpresion operacionBinaria(String tipoResultado, ResultadoExpresion izquierdo,
+            String operador, ResultadoExpresion derecho) {
+        String temporal = nuevoTemporal(tipoResultado);
+        String operacion = temporal + " = " + izquierdo.getDireccion() + " " + operador + " "
+                + derecho.getDireccion();
+        String codigo = izquierdo.getCodigo() + derecho.getCodigo() + instruccion(operacion);
+        return new ResultadoExpresion(tipoResultado, temporal, codigo);
+    }
+
+    /**
+     * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal
      * @return el literal como texto

@@ -274,31 +274,38 @@ op_igualdad ::= OP_IGUAL {: RESULT = "=="; :}
 expr_arit ::= term_mul_div:valor
                 {: RESULT = valor; :}
           | expr_arit:izquierdo OP_MOD:op term_mul_div:derecho
-                {: RESULT = parser.semantico.operacionAritmetica("mod", izquierdo, derecho, opleft, opright); :}
+                {: String tipo = parser.semantico.operacionAritmetica("mod", izquierdo, derecho, opleft, opright).getTipo();
+                   RESULT = parser.generador.operacionBinaria(tipo, izquierdo, "mod", derecho); :}
           ;
 
 term_mul_div ::= term_sum_res:valor
                 {: RESULT = valor; :}
              | term_mul_div:izquierdo OP_MULT:op term_sum_res:derecho
-                {: RESULT = parser.semantico.operacionAritmetica("*", izquierdo, derecho, opleft, opright); :}
+                {: String tipo = parser.semantico.operacionAritmetica("*", izquierdo, derecho, opleft, opright).getTipo();
+                   RESULT = parser.generador.operacionBinaria(tipo, izquierdo, "*", derecho); :}
              | term_mul_div:izquierdo OP_DIV:op term_sum_res:derecho
-                {: RESULT = parser.semantico.operacionAritmetica("/", izquierdo, derecho, opleft, opright); :}
+                {: String tipo = parser.semantico.operacionAritmetica("/", izquierdo, derecho, opleft, opright).getTipo();
+                   RESULT = parser.generador.operacionBinaria(tipo, izquierdo, "/", derecho); :}
              | term_mul_div:izquierdo OP_DIV_ENT:op term_sum_res:derecho
-                {: RESULT = parser.semantico.operacionAritmetica("//", izquierdo, derecho, opleft, opright); :}
+                {: String tipo = parser.semantico.operacionAritmetica("//", izquierdo, derecho, opleft, opright).getTipo();
+                   RESULT = parser.generador.operacionBinaria(tipo, izquierdo, "//", derecho); :}
              ;
 
 term_sum_res ::= potencia:valor
                 {: RESULT = valor; :}
              | term_sum_res:izquierdo OP_SUMA:op potencia:derecho
-                {: RESULT = parser.semantico.operacionAritmetica("+", izquierdo, derecho, opleft, opright); :}
+                {: String tipo = parser.semantico.operacionAritmetica("+", izquierdo, derecho, opleft, opright).getTipo();
+                   RESULT = parser.generador.operacionBinaria(tipo, izquierdo, "+", derecho); :}
              | term_sum_res:izquierdo OP_MENOS:op potencia:derecho
-                {: RESULT = parser.semantico.operacionAritmetica("-", izquierdo, derecho, opleft, opright); :}
+                {: String tipo = parser.semantico.operacionAritmetica("-", izquierdo, derecho, opleft, opright).getTipo();
+                   RESULT = parser.generador.operacionBinaria(tipo, izquierdo, "-", derecho); :}
              ;
 
 potencia ::= atomo:valor
                 {: RESULT = valor; :}
          | atomo:base OP_POT:op potencia:exponente
-                {: RESULT = parser.semantico.operacionPotencia(base, exponente, opleft, opright); :}
+                {: String tipo = parser.semantico.operacionPotencia(base, exponente, opleft, opright).getTipo();
+                   RESULT = parser.generador.operacionBinaria(tipo, base, "pot", exponente); :}
          ;
 
 atomo ::= literal:valor                                     {: RESULT = valor; :}
