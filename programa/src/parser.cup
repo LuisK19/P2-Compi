@@ -156,6 +156,29 @@ parser code {:
         return new ResultadoExpresion("bool");
     }
 
+    ResultadoExpresion operacionLogica(String operador, ResultadoExpresion izquierdo,
+            ResultadoExpresion derecho, int linea, int columna) {
+        if (izquierdo.esError() || derecho.esError()) {
+            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+        }
+        if (!izquierdo.getTipo().equals("bool") || !derecho.getTipo().equals("bool")) {
+            return errorDeOperandos(operador, izquierdo, derecho, linea, columna);
+        }
+        return new ResultadoExpresion("bool");
+    }
+
+    ResultadoExpresion negacionLogica(ResultadoExpresion operando, int linea, int columna) {
+        if (operando.esError()) {
+            return operando;
+        }
+        if (!operando.getTipo().equals("bool")) {
+            reportarErrorSemantico("el operador 'Σ' no acepta un operando de tipo " + operando.getTipo(),
+                    linea, columna);
+            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+        }
+        return new ResultadoExpresion("bool");
+    }
+
     ResultadoExpresion operacionPotencia(ResultadoExpresion base, ResultadoExpresion exponente,
             int linea, int columna) {
         ResultadoExpresion resultado = operacionAritmetica("pot", base, exponente, linea, columna);
@@ -356,12 +379,17 @@ expr_log ::= operacion_log:valor {: RESULT = valor; :}
          | expr_rel:valor        {: RESULT = valor; :}
          ;
 
-operacion_log ::= operando_log OP_AND operando_log {: RESULT = new ResultadoExpresion("bool"); :}
-              | operando_log OP_OR operando_log    {: RESULT = new ResultadoExpresion("bool"); :}
-              | negacion:valor                     {: RESULT = valor; :}
+operacion_log ::= operando_log:izquierdo OP_AND:op operando_log:derecho
+                    {: RESULT = parser.operacionLogica("λ", izquierdo, derecho, opleft, opright); :}
+              | operando_log:izquierdo OP_OR:op operando_log:derecho
+                    {: RESULT = parser.operacionLogica("θ", izquierdo, derecho, opleft, opright); :}
+              | negacion:valor
+                    {: RESULT = valor; :}
               ;
 
-negacion ::= OP_NOT operando_log {: RESULT = new ResultadoExpresion("bool"); :} ;
+negacion ::= OP_NOT:op operando_log:operando
+                {: RESULT = parser.negacionLogica(operando, opleft, opright); :}
+         ;
 
 operando_log ::= PARENTESIS_ABRE expresion:valor PARENTESIS_CIERRA {: RESULT = valor; :}
              | negacion:valor                                      {: RESULT = valor; :}
