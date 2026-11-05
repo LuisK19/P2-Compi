@@ -179,6 +179,36 @@ parser code {:
         return new ResultadoExpresion("bool");
     }
 
+    ResultadoExpresion operacionIncremento(String operador, String nombre, int linea, int columna) {
+        String tipo = tipoDeVariable(nombre, linea, columna);
+        if (tipo.equals(ResultadoExpresion.TIPO_ERROR)) {
+            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+        }
+        if (!tipo.equals("int") && !tipo.equals("float")) {
+            reportarErrorSemantico("el operador '" + operador + "' solo se aplica a variables int o float y '"
+                    + nombre + "' es de tipo " + tipo, linea, columna);
+            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+        }
+        return new ResultadoExpresion(tipo);
+    }
+
+    void validarAsignacion(String nombre, String tipoDestino, ResultadoExpresion valor, int linea, int columna) {
+        if (tipoDestino.equals(ResultadoExpresion.TIPO_ERROR) || valor.esError()) {
+            return;
+        }
+        if (!tipoDestino.equals(valor.getTipo())) {
+            reportarErrorSemantico("no se puede asignar un valor de tipo " + valor.getTipo() + " a '"
+                    + nombre + "', que es de tipo " + tipoDestino, linea, columna);
+        }
+    }
+
+    void validarIndice(ResultadoExpresion indice, int linea, int columna) {
+        if (!indice.esError() && !indice.getTipo().equals("int")) {
+            reportarErrorSemantico("el indice de un arreglo debe ser de tipo int, no " + indice.getTipo(),
+                    linea, columna);
+        }
+    }
+
     ResultadoExpresion operacionPotencia(ResultadoExpresion base, ResultadoExpresion exponente,
             int linea, int columna) {
         ResultadoExpresion resultado = operacionAritmetica("pot", base, exponente, linea, columna);
@@ -348,8 +378,9 @@ valor_arreglo_float ::= literal_float
 
 declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
                 {: parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright); :}
-            | VAL tipo:tipoDato identificador:nombre ASIGNACION expresion FIN_SENT
-                {: parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright); :}
+            | VAL tipo:tipoDato identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
+                {: parser.validarAsignacion(nombre, tipoDato, valor, asigleft, asigright);
+                   parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright); :}
             ;
 
 declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano FIN_SENT
@@ -367,10 +398,13 @@ declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:ta
 
 tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = tamano; :} ;
 
-asignacion ::= identificador:nombre ASIGNACION expresion FIN_SENT
-                {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
-           | identificador:nombre CORCHETE_ABRE expr_arit CORCHETE_CIERRA ASIGNACION expresion FIN_SENT
-                {: parser.tipoDeArreglo(nombre, nombreleft, nombreright); :}
+asignacion ::= identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
+                {: String tipoDestino = parser.tipoDeVariable(nombre, nombreleft, nombreright);
+                   parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright); :}
+           | identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice CORCHETE_CIERRA ASIGNACION:asig expresion:valor FIN_SENT
+                {: String tipoDestino = parser.tipoDeArreglo(nombre, nombreleft, nombreright);
+                   parser.validarIndice(indice, corcheteleft, corcheteright);
+                   parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright); :}
            ;
 
 expresion ::= expr_log:valor {: RESULT = valor; :} ;
@@ -462,8 +496,9 @@ atomo ::= literal:valor                                     {: RESULT = valor; :
       | acceso_arreglo:valor                                {: RESULT = valor; :}
       ;
 
-acceso_arreglo ::= identificador:nombre CORCHETE_ABRE expr_arit CORCHETE_CIERRA
-                   {: RESULT = new ResultadoExpresion(parser.tipoDeArreglo(nombre, nombreleft, nombreright)); :}
+acceso_arreglo ::= identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice CORCHETE_CIERRA
+                   {: parser.validarIndice(indice, corcheteleft, corcheteright);
+                      RESULT = new ResultadoExpresion(parser.tipoDeArreglo(nombre, nombreleft, nombreright)); :}
                ;
 
 negativo ::= negativo_int
@@ -477,8 +512,8 @@ negativo ::= negativo_int
 negativo_int ::= OP_MENOS literal_int ;
 negativo_float ::= OP_MENOS literal_float ;
 
-incremento ::= identificador:nombre OP_INC {: RESULT = new ResultadoExpresion(parser.tipoDeVariable(nombre, nombreleft, nombreright)); :} ;
-decremento ::= identificador:nombre OP_DEC {: RESULT = new ResultadoExpresion(parser.tipoDeVariable(nombre, nombreleft, nombreright)); :} ;
+incremento ::= identificador:nombre OP_INC {: RESULT = parser.operacionIncremento("++", nombre, nombreleft, nombreright); :} ;
+decremento ::= identificador:nombre OP_DEC {: RESULT = parser.operacionIncremento("--", nombre, nombreleft, nombreright); :} ;
 
 sentencia ::= declaracion
           | declaracion_arreglo
@@ -544,8 +579,9 @@ inicio_for ::= declaracion
            ;
 
 actualizacion_for ::= expresion
-                  | identificador:nombre ASIGNACION expresion
-                    {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
+                  | identificador:nombre ASIGNACION:asig expresion:valor
+                    {: String tipoDestino = parser.tipoDeVariable(nombre, nombreleft, nombreright);
+                       parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright); :}
                   ;
 
 sentencia_return ::= RETURN expresion FIN_SENT ;
