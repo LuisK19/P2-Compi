@@ -208,6 +208,7 @@ public class Analizador {
         try (BufferedReader lector = Files.newBufferedReader(Path.of(rutaEntrada), StandardCharsets.UTF_8)) {
             Lexer analizadorLexico = new Lexer(lector);
             Parser analizadorSintactico = new Parser(analizadorLexico);
+            analizadorSintactico.setFuncionesDeclaradas(RecolectorFunciones.recolectar(rutaEntrada));
 
             System.out.println("\nIniciando analisis sintactico...");
             analizadorSintactico.parse();

@@ -1,6 +1,8 @@
 package generated;
 
 import java_cup.runtime.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import src.ResultadoExpresion;
 import src.Simbolo;
 import src.SimboloArreglo;
@@ -16,9 +18,14 @@ parser code {:
     private boolean huboErroresSemanticos = false;
     TablaSimbolos tabla = new TablaSimbolos();
     SimboloFuncion funcionActual;
+    HashMap<String, SimboloFuncion> funcionesDeclaradas = new HashMap<>();
 
     public Parser(Lexer analizadorLexico) {
         this.analizadorLexico = analizadorLexico;
+    }
+
+    public void setFuncionesDeclaradas(HashMap<String, SimboloFuncion> funcionesDeclaradas) {
+        this.funcionesDeclaradas = funcionesDeclaradas;
     }
 
     public void report_error(String mensaje, Object infoAdicional) {
@@ -55,14 +62,6 @@ parser code {:
 
     public TablaSimbolos getTablaSimbolos() {
         return tabla;
-    }
-
-    String tipoDeSimbolo(String nombre) {
-        Simbolo simbolo = tabla.buscar(nombre);
-        if (simbolo == null) {
-            return ResultadoExpresion.TIPO_ERROR;
-        }
-        return simbolo.getTipo();
     }
 
     // En los metodos siguientes la linea y columna llegan desde 0; se muestran y guardan desde 1.
@@ -225,6 +224,40 @@ parser code {:
         return resultado;
     }
 
+    ResultadoExpresion llamadaFuncion(String nombre, ArrayList<ResultadoExpresion> argumentos,
+            int linea, int columna) {
+        Simbolo simbolo = tabla.buscar(nombre);
+        if (simbolo != null && !simbolo.getCategoria().equals("funcion")) {
+            reportarErrorSemantico("'" + nombre + "' no es una funcion", linea, columna);
+            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+        }
+        SimboloFuncion funcion = funcionesDeclaradas.get(nombre);
+        if (funcion == null) {
+            reportarErrorSemantico("la funcion '" + nombre + "' no ha sido declarada", linea, columna);
+            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
+        }
+        validarArgumentos(funcion, argumentos, linea, columna);
+        return new ResultadoExpresion(funcion.getTipo());
+    }
+
+    void validarArgumentos(SimboloFuncion funcion, ArrayList<ResultadoExpresion> argumentos,
+            int linea, int columna) {
+        ArrayList<String> tiposParametros = funcion.getTiposParametros();
+        if (argumentos.size() != tiposParametros.size()) {
+            reportarErrorSemantico("la funcion '" + funcion.getNombre() + "' espera " + tiposParametros.size()
+                    + " argumentos y recibe " + argumentos.size(), linea, columna);
+            return;
+        }
+        for (int i = 0; i < argumentos.size(); i++) {
+            ResultadoExpresion argumento = argumentos.get(i);
+            String tipoEsperado = tiposParametros.get(i);
+            if (!argumento.esError() && !argumento.getTipo().equals(tipoEsperado)) {
+                reportarErrorSemantico("el argumento " + (i + 1) + " de '" + funcion.getNombre()
+                        + "' debe ser de tipo " + tipoEsperado + ", no " + argumento.getTipo(), linea, columna);
+            }
+        }
+    }
+
     void validarTipoRetorno(String nombre, String tipo, int linea, int columna) {
         if (!tipo.equals("int") && !tipo.equals("float") && !tipo.equals("char") && !tipo.equals("bool")) {
             reportarErrorSemantico("la funcion '" + nombre + "' no puede retornar " + tipo
@@ -326,7 +359,8 @@ terminal String CARACTER;
 
 /*No terminales*/
 non terminal programa, globales_opc, funciones_opc, principal, encabezado_principal;
-non terminal funcion, encabezado_funcion, cuerpo_funcion, params, parametro, param_fun, args;
+non terminal funcion, encabezado_funcion, cuerpo_funcion, params, parametro, param_fun;
+non terminal ArrayList<ResultadoExpresion> args;
 non terminal declaracion, declaracion_arreglo, asignacion, bloque, inicio_bloque, lista_lineas, linea_bloque, sentencia;
 non terminal valor_arreglo_int, valor_arreglo_float;
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
@@ -645,14 +679,18 @@ param_fun ::= PARENTESIS_ABRE params PARENTESIS_CIERRA
           | PARENTESIS_ABRE PARENTESIS_CIERRA
           ;
 
-llamada_fun ::= identificador:nombre PARENTESIS_ABRE args PARENTESIS_CIERRA
-                {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :}
+llamada_fun ::= identificador:nombre PARENTESIS_ABRE args:argumentos PARENTESIS_CIERRA
+                {: RESULT = parser.llamadaFuncion(nombre, argumentos, nombreleft, nombreright); :}
             | identificador:nombre PARENTESIS_ABRE PARENTESIS_CIERRA
-                {: RESULT = new ResultadoExpresion(parser.tipoDeSimbolo(nombre)); :}
+                {: RESULT = parser.llamadaFuncion(nombre, new ArrayList<ResultadoExpresion>(), nombreleft, nombreright); :}
             ;
 
-args ::= expresion
-     | expresion COMA args
+args ::= expresion:valor
+            {: RESULT = new ArrayList<ResultadoExpresion>();
+               RESULT.add(valor); :}
+     | expresion:valor COMA args:resto
+            {: resto.add(0, valor);
+               RESULT = resto; :}
      ;
 
 principal ::= encabezado_principal cuerpo_funcion {: parser.tabla.cerrarAlcance(); :} ;
