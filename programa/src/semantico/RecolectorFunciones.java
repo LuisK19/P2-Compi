@@ -1,8 +1,9 @@
-package src;
+package src.semantico;
 
 import generated.Lexer;
 import generated.sym;
 import java_cup.runtime.Symbol;
+import src.tabla.SimboloFuncion;
 
 import java.io.BufferedReader;
 import java.io.IOException;

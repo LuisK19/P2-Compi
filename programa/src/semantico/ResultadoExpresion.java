@@ -1,4 +1,4 @@
-package src;
+package src.semantico;
 
 /**
  * Información que devuelve cada regla de expresión del parser.

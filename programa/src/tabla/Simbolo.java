@@ -1,4 +1,4 @@
-package src;
+package src.tabla;
 
 /**
  * Representa un identificador declarado en el programa fuente.

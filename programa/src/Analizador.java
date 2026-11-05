@@ -4,10 +4,12 @@ import generated.Lexer;
 import generated.Parser;
 import generated.sym;
 import java_cup.runtime.Symbol;
+import src.semantico.RecolectorFunciones;
 
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,22 +27,29 @@ public class Analizador {
      * Inicia el análisis usando las rutas indicadas en los argumentos.
      *
      * <p>El primer argumento es el archivo de entrada, el segundo la ruta del
-     * reporte CSV de tokens y el tercero la ruta del reporte de la tabla de
-     * símbolos. Si no se proporcionan, se usan rutas predeterminadas.
+     * reporte CSV de tokens, el tercero la ruta del reporte de la tabla de
+     * símbolos y el cuarto la ruta del código intermedio. Si no se
+     * proporcionan, los reportes se guardan en la carpeta salida.
      *
      * @param args rutas opcionales de entrada y de los reportes
+     * @throws IOException si no se pueden crear las carpetas de los reportes
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         usarSalidaUtf8();
 
-        String archivoEntrada = args.length > 0 ? args[0] : "tests/validos/tabla_simbolos.txt";
-        String archivoSalidaTokens = args.length > 1 ? args[1] : "tokens_encontrados.csv";
-        String archivoSalidaTabla = args.length > 2 ? args[2] : "tabla_simbolos.txt";
+        String archivoEntrada = args.length > 0 ? args[0] : "tests/validos/semantico_funciones.txt";
+        String archivoSalidaTokens = args.length > 1 ? args[1] : "salida/tokens_encontrados.csv";
+        String archivoSalidaTabla = args.length > 2 ? args[2] : "salida/tabla_simbolos.txt";
+        String archivoSalidaCodigo = args.length > 3 ? args[3] : "salida/codigo_intermedio.txt";
 
         if (!new File(archivoEntrada).exists()) {
             System.err.println("No se encontro el archivo de entrada: " + archivoEntrada);
             return;
         }
+
+        crearCarpetaDe(archivoSalidaTokens);
+        crearCarpetaDe(archivoSalidaTabla);
+        crearCarpetaDe(archivoSalidaCodigo);
 
         System.out.println("--- INICIANDO COMPILADOR ---");
         System.out.println("Archivo de entrada: " + archivoEntrada);
@@ -50,7 +59,20 @@ public class Analizador {
             return;
         }
 
-        ejecutarAnalisisSintactico(archivoEntrada, archivoSalidaTabla);
+        ejecutarAnalisisSintactico(archivoEntrada, archivoSalidaTabla, archivoSalidaCodigo);
+    }
+
+    /**
+     * Crea la carpeta donde va un archivo de salida, si todavía no existe.
+     *
+     * @param rutaArchivo ruta del archivo que se va a escribir
+     * @throws IOException si no se puede crear la carpeta
+     */
+    private static void crearCarpetaDe(String rutaArchivo) throws IOException {
+        Path carpeta = Path.of(rutaArchivo).getParent();
+        if (carpeta != null) {
+            Files.createDirectories(carpeta);
+        }
     }
 
     /**
@@ -198,13 +220,14 @@ public class Analizador {
     }
 
     /**
-     * Ejecuta el parser, escribe la tabla de símbolos y comunica si la entrada
-     * cumple la gramática.
+     * Ejecuta el parser, escribe la tabla de símbolos, comunica si la entrada
+     * cumple la gramática y, si no hubo errores, escribe el código intermedio.
      *
      * @param rutaEntrada ruta del archivo fuente que se analizará
      * @param rutaTabla ruta del archivo donde se escribirá la tabla de símbolos
+     * @param rutaCodigo ruta del archivo donde se escribirá el código intermedio
      */
-    public static void ejecutarAnalisisSintactico(String rutaEntrada, String rutaTabla) {
+    public static void ejecutarAnalisisSintactico(String rutaEntrada, String rutaTabla, String rutaCodigo) {
         try (BufferedReader lector = Files.newBufferedReader(Path.of(rutaEntrada), StandardCharsets.UTF_8)) {
             Lexer analizadorLexico = new Lexer(lector);
             Parser analizadorSintactico = new Parser(analizadorLexico);
@@ -219,11 +242,14 @@ public class Analizador {
             if (analizadorLexico.huboErroresLexicos()
                     || analizadorSintactico.huboErroresSintacticos()
                     || analizadorSintactico.huboErroresSemanticos()) {
+                System.out.println("No se genero el codigo intermedio porque el archivo fuente tiene errores.");
                 System.out.println(
                         "\nRESULTADO: El archivo fuente NO puede ser generado por la gramatica (Errores encontrados).");
                 return;
             }
 
+            Files.writeString(Path.of(rutaCodigo), analizadorSintactico.getCodigoIntermedio(), StandardCharsets.UTF_8);
+            System.out.println("Codigo intermedio generado en -> " + rutaCodigo);
             System.out.println("\nRESULTADO: El archivo fuente SI puede ser generado por la gramatica.");
         } catch (Exception e) {
             System.err.println("Error durante el analisis: " + e.getMessage());
