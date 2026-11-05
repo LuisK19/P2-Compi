@@ -413,14 +413,14 @@ terminal String CADENA;
 terminal String CARACTER;
 
 /*No terminales*/
-non terminal programa, globales_opc, funciones_opc, principal, encabezado_principal;
-non terminal funcion, encabezado_funcion, cuerpo_funcion, params, parametro, param_fun;
+non terminal programa, encabezado_principal;
+non terminal encabezado_funcion, params, parametro, param_fun;
 non terminal ArrayList<ResultadoExpresion> args;
-non terminal declaracion, declaracion_arreglo, asignacion, bloque, inicio_bloque, lista_lineas, linea_bloque, sentencia;
+non terminal inicio_bloque;
 non terminal valor_arreglo_int, valor_arreglo_float;
-non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
-non terminal sentencia_while, apertura_while, sentencia_for, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
-non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
+non terminal elif_opc, else_opc, sentencia_elif, sentencia_else;
+non terminal apertura_while, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
+non terminal param_write;
 non terminal String op_orden, op_igualdad;
 non terminal negativo_int, negativo_float;
 non terminal literal_float, literal_bool, literal_char, literal_str;
@@ -434,6 +434,12 @@ non terminal ResultadoExpresion expresion, expr_log, operacion_log, negacion, op
 non terminal ResultadoExpresion expr_rel, operacion_rel, operando_rel, operando_igualdad;
 non terminal ResultadoExpresion expr_arit, term_mul_div, term_sum_res, potencia, atomo;
 non terminal ResultadoExpresion acceso_arreglo, incremento, decremento, llamada_fun, negativo, literal;
+
+/* No terminales que devuelven el código intermedio de una sentencia o estructura */
+non terminal String globales_opc, funciones_opc, principal, funcion, cuerpo_funcion;
+non terminal String declaracion, declaracion_arreglo, asignacion, bloque, lista_lineas, linea_bloque, sentencia;
+non terminal String estructura_control, sentencia_if, sentencia_while, sentencia_for;
+non terminal String sentencia_return, sentencia_break, sentencia_write, sentencia_read;
 
 /* Simbolo inicial */
 start with programa;
@@ -479,34 +485,41 @@ valor_arreglo_float ::= literal_float
                     ;
 
 declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
-                {: parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright); :}
+                {: parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
+                   RESULT = ""; :}
             | VAL tipo:tipoDato identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
                 {: parser.validarAsignacion(nombre, tipoDato, valor, asigleft, asigright);
-                   parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright); :}
+                   parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
+                   RESULT = ""; :}
             ;
 
 declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano FIN_SENT
                         {: parser.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
+                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                           RESULT = ""; :}
                     | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_int:cantidad LLAVE_CIERRA FIN_SENT
                         {: parser.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            parser.validarValoresArreglo(nombre, tipoDato, tamano, "int", cantidad, nombreleft, nombreright);
-                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
+                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                           RESULT = ""; :}
                     | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_float:cantidad LLAVE_CIERRA FIN_SENT
                         {: parser.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            parser.validarValoresArreglo(nombre, tipoDato, tamano, "float", cantidad, nombreleft, nombreright);
-                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright); :}
+                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                           RESULT = ""; :}
                     ;
 
 tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = tamano; :} ;
 
 asignacion ::= identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
                 {: String tipoDestino = parser.tipoDeVariable(nombre, nombreleft, nombreright);
-                   parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright); :}
+                   parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
+                   RESULT = ""; :}
            | identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice CORCHETE_CIERRA ASIGNACION:asig expresion:valor FIN_SENT
                 {: String tipoDestino = parser.tipoDeArreglo(nombre, nombreleft, nombreright);
                    parser.validarIndice(indice, corcheteleft, corcheteright);
-                   parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright); :}
+                   parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
+                   RESULT = ""; :}
            ;
 
 expresion ::= expr_log:valor {: RESULT = valor; :} ;
@@ -617,16 +630,16 @@ negativo_float ::= OP_MENOS literal_float ;
 incremento ::= identificador:nombre OP_INC {: RESULT = parser.operacionIncremento("++", nombre, nombreleft, nombreright); :} ;
 decremento ::= identificador:nombre OP_DEC {: RESULT = parser.operacionIncremento("--", nombre, nombreleft, nombreright); :} ;
 
-sentencia ::= declaracion
-          | declaracion_arreglo
-          | asignacion
-          | incremento FIN_SENT
-          | decremento FIN_SENT
-          | llamada_fun FIN_SENT
-          | sentencia_write
-          | sentencia_read
-          | sentencia_return
-          | sentencia_break
+sentencia ::= declaracion:codigo           {: RESULT = codigo; :}
+          | declaracion_arreglo:codigo     {: RESULT = codigo; :}
+          | asignacion:codigo              {: RESULT = codigo; :}
+          | incremento FIN_SENT            {: RESULT = ""; :}
+          | decremento FIN_SENT            {: RESULT = ""; :}
+          | llamada_fun FIN_SENT           {: RESULT = ""; :}
+          | sentencia_write:codigo         {: RESULT = codigo; :}
+          | sentencia_read:codigo          {: RESULT = codigo; :}
+          | sentencia_return:codigo        {: RESULT = codigo; :}
+          | sentencia_break:codigo         {: RESULT = codigo; :}
           ;
 
 condicion ::= PARENTESIS_ABRE:parentesis expresion:valor PARENTESIS_CIERRA
@@ -634,7 +647,7 @@ condicion ::= PARENTESIS_ABRE:parentesis expresion:valor PARENTESIS_CIERRA
           | PARENTESIS_ABRE error PARENTESIS_CIERRA
           ;
 
-sentencia_if ::= IF condicion bloque elif_opc else_opc ;
+sentencia_if ::= IF condicion bloque elif_opc else_opc {: RESULT = ""; :} ;
 
 elif_opc ::= sentencia_elif elif_opc
          | 
@@ -647,35 +660,43 @@ else_opc ::= sentencia_else
 sentencia_elif ::= ELIF condicion bloque ;
 sentencia_else ::= ELSE bloque ;
 
-bloque ::= inicio_bloque lista_lineas LLAVE_CIERRA {: parser.tabla.cerrarAlcance(); :}
-       | inicio_bloque error LLAVE_CIERRA {: parser.tabla.cerrarAlcance(); :}
+bloque ::= inicio_bloque lista_lineas:codigo LLAVE_CIERRA
+                {: parser.tabla.cerrarAlcance();
+                   RESULT = codigo; :}
+       | inicio_bloque error LLAVE_CIERRA
+                {: parser.tabla.cerrarAlcance();
+                   RESULT = ""; :}
        ;
 
 inicio_bloque ::= LLAVE_ABRE:llave {: parser.tabla.abrirAlcance("bloque linea " + (llaveleft + 1)); :} ;
 
-lista_lineas ::= linea_bloque
-             | linea_bloque lista_lineas
+lista_lineas ::= linea_bloque:codigo                      {: RESULT = codigo; :}
+             | linea_bloque:codigo lista_lineas:resto     {: RESULT = codigo + resto; :}
              ;
 
-linea_bloque ::= sentencia
-             | estructura_control
-             | bloque
-             | error FIN_SENT
-             | error bloque
+linea_bloque ::= sentencia:codigo              {: RESULT = codigo; :}
+             | estructura_control:codigo       {: RESULT = codigo; :}
+             | bloque:codigo                   {: RESULT = codigo; :}
+             | error FIN_SENT                  {: RESULT = ""; :}
+             | error bloque                    {: RESULT = ""; :}
              ;
 
-estructura_control ::= sentencia_if
-                   | sentencia_while
-                   | sentencia_for
+estructura_control ::= sentencia_if:codigo     {: RESULT = codigo; :}
+                   | sentencia_while:codigo    {: RESULT = codigo; :}
+                   | sentencia_for:codigo      {: RESULT = codigo; :}
                    ;
 
-sentencia_while ::= apertura_while condicion bloque {: parser.ciclosAbiertos--; :} ;
+sentencia_while ::= apertura_while condicion bloque
+                    {: parser.ciclosAbiertos--;
+                       RESULT = ""; :}
+                ;
 
 apertura_while ::= WHILE {: parser.ciclosAbiertos++; :} ;
 
 sentencia_for ::= apertura_for encabezado_for bloque
                   {: parser.ciclosAbiertos--;
-                     parser.tabla.cerrarAlcance(); :}
+                     parser.tabla.cerrarAlcance();
+                     RESULT = ""; :}
               ;
 
 apertura_for ::= FOR:palabraFor
@@ -698,13 +719,15 @@ actualizacion_for ::= expresion
                   ;
 
 sentencia_return ::= RETURN:palabraReturn expresion:valor FIN_SENT
-                     {: parser.validarReturn(valor, palabraReturnleft, palabraReturnright); :}
+                     {: parser.validarReturn(valor, palabraReturnleft, palabraReturnright);
+                        RESULT = ""; :}
                  ;
 sentencia_break ::= BREAK:palabraBreak FIN_SENT
-                    {: parser.validarBreak(palabraBreakleft, palabraBreakright); :}
+                    {: parser.validarBreak(palabraBreakleft, palabraBreakright);
+                       RESULT = ""; :}
                 ;
 
-sentencia_write ::= WRITE PARENTESIS_ABRE param_write PARENTESIS_CIERRA FIN_SENT ;
+sentencia_write ::= WRITE PARENTESIS_ABRE param_write PARENTESIS_CIERRA FIN_SENT {: RESULT = ""; :} ;
 
 param_write ::= literal_str
             | literal_int
@@ -719,15 +742,18 @@ param_write ::= literal_str
 
 sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA FIN_SENT
                    {: String tipo = parser.tipoDeVariable(nombre, nombreleft, nombreright);
-                      parser.validarTipoRead(nombre, tipo, nombreleft, nombreright); :}
+                      parser.validarTipoRead(nombre, tipo, nombreleft, nombreright);
+                      RESULT = ""; :}
                ;
 
-funcion ::= encabezado_funcion param_fun cuerpo_funcion
+funcion ::= encabezado_funcion param_fun cuerpo_funcion:cuerpo
                 {: parser.validarFuncionConReturn();
-                   parser.tabla.cerrarAlcance(); :}
-        | encabezado_funcion error cuerpo_funcion
+                   parser.tabla.cerrarAlcance();
+                   RESULT = cuerpo; :}
+        | encabezado_funcion error cuerpo_funcion:cuerpo
                 {: parser.validarFuncionConReturn();
-                   parser.tabla.cerrarAlcance(); :}
+                   parser.tabla.cerrarAlcance();
+                   RESULT = cuerpo; :}
         ;
 
 encabezado_funcion ::= tipo:tipoRetorno identificador:nombre
@@ -736,8 +762,8 @@ encabezado_funcion ::= tipo:tipoRetorno identificador:nombre
                           parser.tabla.abrirAlcance(nombre); :}
                    ;
 
-cuerpo_funcion ::= LLAVE_ABRE lista_lineas LLAVE_CIERRA
-               | LLAVE_ABRE error LLAVE_CIERRA
+cuerpo_funcion ::= LLAVE_ABRE lista_lineas:codigo LLAVE_CIERRA  {: RESULT = codigo; :}
+               | LLAVE_ABRE error LLAVE_CIERRA                {: RESULT = ""; :}
                ;
 
 params ::= parametro
@@ -767,21 +793,26 @@ args ::= expresion:valor
                RESULT = resto; :}
      ;
 
-principal ::= encabezado_principal cuerpo_funcion {: parser.tabla.cerrarAlcance(); :} ;
+principal ::= encabezado_principal cuerpo_funcion:cuerpo
+                {: parser.tabla.cerrarAlcance();
+                   RESULT = cuerpo; :}
+          ;
 
 encabezado_principal ::= VOID PRINCIPAL:palabraPrincipal PARENTESIS_ABRE PARENTESIS_CIERRA
                          {: parser.agregarFuncion("principal", "void", palabraPrincipalleft, palabraPrincipalright);
                             parser.tabla.abrirAlcance("principal"); :}
                      ;
 
-globales_opc ::= declaracion globales_opc
-             | declaracion_arreglo globales_opc
-             | error FIN_SENT globales_opc
-             |
+globales_opc ::= declaracion:codigo globales_opc:resto           {: RESULT = codigo + resto; :}
+             | declaracion_arreglo:codigo globales_opc:resto   {: RESULT = codigo + resto; :}
+             | error FIN_SENT globales_opc:resto               {: RESULT = resto; :}
+             |                                                 {: RESULT = ""; :}
              ;
 
-funciones_opc ::= funcion funciones_opc
-              |
+funciones_opc ::= funcion:codigo funciones_opc:resto  {: RESULT = codigo + resto; :}
+              |                                       {: RESULT = ""; :}
               ;
 
-programa ::= globales_opc funciones_opc principal funciones_opc ;
+programa ::= globales_opc:globales funciones_opc:funcionesAntes principal:codigoPrincipal funciones_opc:funcionesDespues
+             {: parser.codigoIntermedio = globales + funcionesAntes + codigoPrincipal + funcionesDespues; :}
+         ;

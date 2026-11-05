@@ -34,7 +34,7 @@ public class Analizador {
     public static void main(String[] args) {
         usarSalidaUtf8();
 
-        String archivoEntrada = args.length > 0 ? args[0] : "tests/validos/tabla_simbolos.txt";
+        String archivoEntrada = args.length > 0 ? args[0] : "tests/validos/semantico_funciones.txt";
         String archivoSalidaTokens = args.length > 1 ? args[1] : "tokens_encontrados.csv";
         String archivoSalidaTabla = args.length > 2 ? args[2] : "tabla_simbolos.txt";
         String archivoSalidaCodigo = args.length > 3 ? args[3] : "codigo_intermedio.txt";
