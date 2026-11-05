@@ -3,6 +3,7 @@ package generated;
 import java_cup.runtime.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import src.codigo.GeneradorCodigo;
 import src.semantico.AnalizadorSemantico;
 import src.semantico.ResultadoExpresion;
 import src.tabla.SimboloFuncion;
@@ -16,6 +17,7 @@ parser code {:
     Lexer analizadorLexico;
     private boolean huboErroresSintacticos = false;
     AnalizadorSemantico semantico = new AnalizadorSemantico();
+    GeneradorCodigo generador = new GeneradorCodigo();
     String codigoIntermedio = "";
 
     public Parser(Lexer analizadorLexico) {
@@ -118,7 +120,8 @@ non terminal apertura_while, apertura_for, encabezado_for, inicio_for, actualiza
 non terminal param_write;
 non terminal String op_orden, op_igualdad;
 non terminal negativo_int, negativo_float;
-non terminal literal_float, literal_bool, literal_char, literal_str;
+non terminal Double literal_float;
+non terminal String literal_bool, literal_char, literal_str;
 
 /* No terminales que devuelven un valor para la tabla de símbolos */
 non terminal String identificador, tipo;
@@ -150,18 +153,20 @@ tipo ::= INT   {: RESULT = "int"; :}
      | STR   {: RESULT = "string"; :}
      ;
 
-literal ::= literal_int   {: RESULT = new ResultadoExpresion("int"); :}
-        | literal_float {: RESULT = new ResultadoExpresion("float"); :}
-        | literal_bool  {: RESULT = new ResultadoExpresion("bool"); :}
-        | literal_char  {: RESULT = new ResultadoExpresion("char"); :}
-        | literal_str   {: RESULT = new ResultadoExpresion("string"); :}
+literal ::= literal_int:valor   {: RESULT = parser.generador.cargarEnTemporal("int", String.valueOf(valor)); :}
+        | literal_float:valor {: RESULT = parser.generador.cargarEnTemporal("float", GeneradorCodigo.textoFlotante(valor)); :}
+        | literal_bool:valor  {: RESULT = parser.generador.cargarEnTemporal("bool", valor); :}
+        | literal_char:valor  {: RESULT = parser.generador.cargarEnTemporal("char", "'" + valor + "'"); :}
+        | literal_str:valor   {: RESULT = parser.generador.cargarEnTemporal("string", "\"" + valor + "\""); :}
         ;
 
-literal_int   ::= ENTERO:valor {: RESULT = valor; :} ;
-literal_float ::= FLOTANTE ;
-literal_bool  ::= TRUE | FALSE ;
-literal_char  ::= CARACTER ;
-literal_str   ::= CADENA ;
+literal_int   ::= ENTERO:valor    {: RESULT = valor; :} ;
+literal_float ::= FLOTANTE:valor  {: RESULT = valor; :} ;
+literal_bool  ::= TRUE            {: RESULT = "true"; :}
+              | FALSE           {: RESULT = "false"; :}
+              ;
+literal_char  ::= CARACTER:valor  {: RESULT = valor; :} ;
+literal_str   ::= CADENA:valor    {: RESULT = valor; :} ;
 
 valores_arreglo_int ::= valor_arreglo_int                                   {: RESULT = 1; :}
                     | valor_arreglo_int COMA valores_arreglo_int:cantidad   {: RESULT = cantidad + 1; :}
@@ -297,7 +302,9 @@ potencia ::= atomo:valor
          ;
 
 atomo ::= literal:valor                                     {: RESULT = valor; :}
-      | identificador:nombre                                {: RESULT = new ResultadoExpresion(parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright)); :}
+      | identificador:nombre
+            {: String tipo = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
+               RESULT = parser.generador.cargarEnTemporal(tipo, nombre); :}
       | PARENTESIS_ABRE expresion:valor PARENTESIS_CIERRA   {: RESULT = valor; :}
       | negativo:valor                                      {: RESULT = valor; :}
       | incremento:valor                                    {: RESULT = valor; :}

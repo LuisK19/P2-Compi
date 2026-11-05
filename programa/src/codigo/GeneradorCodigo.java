@@ -1,21 +1,52 @@
 package src.codigo;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
+import src.semantico.ResultadoExpresion;
+
 /**
  * Da los nombres de temporales y los números de etiqueta que usa el código
  * intermedio de tres direcciones.
  */
 public class GeneradorCodigo {
-    private int contadorTemporales = 0;
+    private HashMap<String, Integer> contadoresTemporales = new HashMap<>();
     private int contadorEtiquetas = 0;
 
     /**
-     * Crea un temporal nuevo.
+     * Crea un temporal nuevo para un valor del tipo indicado. Cada tipo tiene
+     * su propia letra y su propio contador.
      *
-     * @return nombre del temporal (t1, t2, ...)
+     * @param tipo tipo del valor que guarda el temporal
+     * @return nombre del temporal (i1, f1, b1, c1, s1, ...)
      */
-    public String nuevoTemporal() {
-        contadorTemporales++;
-        return "t" + contadorTemporales;
+    public String nuevoTemporal(String tipo) {
+        String prefijo = prefijoDeTipo(tipo);
+        int numero = contadoresTemporales.getOrDefault(prefijo, 0) + 1;
+        contadoresTemporales.put(prefijo, numero);
+        return prefijo + numero;
+    }
+
+    /**
+     * Letra con la que empiezan los temporales de cada tipo.
+     *
+     * @param tipo tipo del valor
+     * @return la letra del tipo, o "t" si la expresión tiene error de tipo
+     */
+    private static String prefijoDeTipo(String tipo) {
+        switch (tipo) {
+            case "int":
+                return "i";
+            case "float":
+                return "f";
+            case "bool":
+                return "b";
+            case "char":
+                return "c";
+            case "string":
+                return "s";
+            default:
+                return "t";
+        }
     }
 
     /**
@@ -29,6 +60,29 @@ public class GeneradorCodigo {
     public int nuevoNumeroEtiqueta() {
         contadorEtiquetas++;
         return contadorEtiquetas;
+    }
+
+    /**
+     * Carga un literal o el valor de una variable en un temporal nuevo, por
+     * ejemplo "t1 = 5" o "t2 = x".
+     *
+     * @param tipo tipo del valor cargado
+     * @param valor literal o nombre de la variable
+     * @return resultado con el temporal como dirección y la instrucción de carga
+     */
+    public ResultadoExpresion cargarEnTemporal(String tipo, String valor) {
+        String temporal = nuevoTemporal(tipo);
+        return new ResultadoExpresion(tipo, temporal, instruccion(temporal + " = " + valor));
+    }
+
+    /**
+     * Escribe un literal flotante sin notación científica 
+     *
+     * @param valor valor del literal
+     * @return el literal como texto
+     */
+    public static String textoFlotante(Double valor) {
+        return BigDecimal.valueOf(valor).toPlainString();
     }
 
     /**
