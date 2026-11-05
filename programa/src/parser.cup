@@ -23,6 +23,7 @@ parser code {:
     int erroresSintacticosAlIniciarFuncion = 0;
     int ciclosAbiertos = 0;
     HashMap<String, SimboloFuncion> funcionesDeclaradas = new HashMap<>();
+    String codigoIntermedio = "";
 
     public Parser(Lexer analizadorLexico) {
         this.analizadorLexico = analizadorLexico;
@@ -67,6 +68,10 @@ parser code {:
 
     public TablaSimbolos getTablaSimbolos() {
         return tabla;
+    }
+
+    public String getCodigoIntermedio() {
+        return codigoIntermedio;
     }
 
     // En los metodos siguientes la linea y columna llegan desde 0; se muestran y guardan desde 1.

@@ -25,8 +25,9 @@ public class Analizador {
      * Inicia el análisis usando las rutas indicadas en los argumentos.
      *
      * <p>El primer argumento es el archivo de entrada, el segundo la ruta del
-     * reporte CSV de tokens y el tercero la ruta del reporte de la tabla de
-     * símbolos. Si no se proporcionan, se usan rutas predeterminadas.
+     * reporte CSV de tokens, el tercero la ruta del reporte de la tabla de
+     * símbolos y el cuarto la ruta del código intermedio. Si no se
+     * proporcionan, se usan rutas predeterminadas.
      *
      * @param args rutas opcionales de entrada y de los reportes
      */
@@ -36,6 +37,7 @@ public class Analizador {
         String archivoEntrada = args.length > 0 ? args[0] : "tests/validos/tabla_simbolos.txt";
         String archivoSalidaTokens = args.length > 1 ? args[1] : "tokens_encontrados.csv";
         String archivoSalidaTabla = args.length > 2 ? args[2] : "tabla_simbolos.txt";
+        String archivoSalidaCodigo = args.length > 3 ? args[3] : "codigo_intermedio.txt";
 
         if (!new File(archivoEntrada).exists()) {
             System.err.println("No se encontro el archivo de entrada: " + archivoEntrada);
@@ -50,7 +52,7 @@ public class Analizador {
             return;
         }
 
-        ejecutarAnalisisSintactico(archivoEntrada, archivoSalidaTabla);
+        ejecutarAnalisisSintactico(archivoEntrada, archivoSalidaTabla, archivoSalidaCodigo);
     }
 
     /**
@@ -198,13 +200,14 @@ public class Analizador {
     }
 
     /**
-     * Ejecuta el parser, escribe la tabla de símbolos y comunica si la entrada
-     * cumple la gramática.
+     * Ejecuta el parser, escribe la tabla de símbolos, comunica si la entrada
+     * cumple la gramática y, si no hubo errores, escribe el código intermedio.
      *
      * @param rutaEntrada ruta del archivo fuente que se analizará
      * @param rutaTabla ruta del archivo donde se escribirá la tabla de símbolos
+     * @param rutaCodigo ruta del archivo donde se escribirá el código intermedio
      */
-    public static void ejecutarAnalisisSintactico(String rutaEntrada, String rutaTabla) {
+    public static void ejecutarAnalisisSintactico(String rutaEntrada, String rutaTabla, String rutaCodigo) {
         try (BufferedReader lector = Files.newBufferedReader(Path.of(rutaEntrada), StandardCharsets.UTF_8)) {
             Lexer analizadorLexico = new Lexer(lector);
             Parser analizadorSintactico = new Parser(analizadorLexico);
@@ -219,11 +222,14 @@ public class Analizador {
             if (analizadorLexico.huboErroresLexicos()
                     || analizadorSintactico.huboErroresSintacticos()
                     || analizadorSintactico.huboErroresSemanticos()) {
+                System.out.println("No se genero el codigo intermedio porque el archivo fuente tiene errores.");
                 System.out.println(
                         "\nRESULTADO: El archivo fuente NO puede ser generado por la gramatica (Errores encontrados).");
                 return;
             }
 
+            Files.writeString(Path.of(rutaCodigo), analizadorSintactico.getCodigoIntermedio(), StandardCharsets.UTF_8);
+            System.out.println("Codigo intermedio generado en -> " + rutaCodigo);
             System.out.println("\nRESULTADO: El archivo fuente SI puede ser generado por la gramatica.");
         } catch (Exception e) {
             System.err.println("Error durante el analisis: " + e.getMessage());
