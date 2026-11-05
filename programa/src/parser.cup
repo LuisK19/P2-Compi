@@ -475,7 +475,7 @@ sentencia_return ::= RETURN:palabraReturn expresion:valor FIN_SENT
                  ;
 sentencia_break ::= BREAK:palabraBreak FIN_SENT
                     {: parser.semantico.validarBreak(palabraBreakleft, palabraBreakright);
-                       RESULT = ""; :}
+                       RESULT = parser.generador.sentenciaBreak(); :}
                 ;
 
 sentencia_write ::= WRITE PARENTESIS_ABRE param_write PARENTESIS_CIERRA FIN_SENT {: RESULT = ""; :} ;

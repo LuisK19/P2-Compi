@@ -16,6 +16,7 @@ public class GeneradorCodigo {
     private Stack<Integer> numerosIf = new Stack<>();
     private Stack<Integer> numerosElif = new Stack<>();
     private Stack<Integer> numerosCiclo = new Stack<>();
+    private Stack<String> salidasCiclo = new Stack<>();
 
     /**
      * Crea un temporal nuevo para un valor del tipo indicado. Cada tipo tiene
@@ -303,7 +304,9 @@ public class GeneradorCodigo {
      * Reserva el número de etiquetas de un while que se empieza a leer.
      */
     public void abrirWhile() {
-        numerosCiclo.push(nuevoNumeroEtiqueta());
+        int numero = nuevoNumeroEtiqueta();
+        numerosCiclo.push(numero);
+        salidasCiclo.push("while_end_" + numero);
     }
 
     /**
@@ -316,6 +319,7 @@ public class GeneradorCodigo {
      */
     public String sentenciaWhile(ResultadoExpresion condicion, String cuerpo) {
         int numero = numerosCiclo.pop();
+        salidasCiclo.pop();
         return etiqueta("while_" + numero)
                 + condicion.getCodigo()
                 + instruccion("if " + condicion.getDireccion() + " goto while_body_" + numero)
@@ -330,7 +334,9 @@ public class GeneradorCodigo {
      * Reserva el número de etiquetas de un for que se empieza a leer.
      */
     public void abrirFor() {
-        numerosCiclo.push(nuevoNumeroEtiqueta());
+        int numero = nuevoNumeroEtiqueta();
+        numerosCiclo.push(numero);
+        salidasCiclo.push("for_end_" + numero);
     }
 
     /**
@@ -344,6 +350,7 @@ public class GeneradorCodigo {
      */
     public String sentenciaFor(EncabezadoFor encabezado, String cuerpo) {
         int numero = numerosCiclo.pop();
+        salidasCiclo.pop();
         ResultadoExpresion condicion = encabezado.getCondicion();
         return encabezado.getInicio()
                 + etiqueta("for_" + numero)
@@ -355,6 +362,19 @@ public class GeneradorCodigo {
                 + encabezado.getActualizacion()
                 + instruccion("goto for_" + numero)
                 + etiqueta("for_end_" + numero);
+    }
+
+    /**
+     * Genera un break: un salto a la salida del ciclo más cercano.
+     *
+     * @return código del salto, o vacío si no hay un ciclo abierto (el
+     *     análisis semántico ya reportó ese error)
+     */
+    public String sentenciaBreak() {
+        if (salidasCiclo.isEmpty()) {
+            return "";
+        }
+        return instruccion("goto " + salidasCiclo.peek());
     }
 
     /**
