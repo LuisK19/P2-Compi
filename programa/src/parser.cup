@@ -21,6 +21,7 @@ parser code {:
     SimboloFuncion funcionActual;
     boolean funcionTieneReturn = false;
     int erroresSintacticosAlIniciarFuncion = 0;
+    int ciclosAbiertos = 0;
     HashMap<String, SimboloFuncion> funcionesDeclaradas = new HashMap<>();
 
     public Parser(Lexer analizadorLexico) {
@@ -285,6 +286,12 @@ parser code {:
         }
     }
 
+    void validarBreak(int linea, int columna) {
+        if (ciclosAbiertos == 0) {
+            reportarErrorSemantico("break solo se puede usar dentro de un while o un for", linea, columna);
+        }
+    }
+
     void validarTipoRead(String nombre, String tipo, int linea, int columna) {
         if (tipo.equals("string") || tipo.equals("bool")) {
             reportarErrorSemantico("read solo puede leer variables int, float o char y '" + nombre
@@ -407,7 +414,7 @@ non terminal ArrayList<ResultadoExpresion> args;
 non terminal declaracion, declaracion_arreglo, asignacion, bloque, inicio_bloque, lista_lineas, linea_bloque, sentencia;
 non terminal valor_arreglo_int, valor_arreglo_float;
 non terminal estructura_control, sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
-non terminal sentencia_while, sentencia_for, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
+non terminal sentencia_while, apertura_while, sentencia_for, apertura_for, encabezado_for, inicio_for, actualizacion_for, condicion;
 non terminal sentencia_return, sentencia_break, sentencia_write, param_write, sentencia_read;
 non terminal String op_orden, op_igualdad;
 non terminal negativo_int, negativo_float;
@@ -657,11 +664,19 @@ estructura_control ::= sentencia_if
                    | sentencia_for
                    ;
 
-sentencia_while ::= WHILE condicion bloque ;
+sentencia_while ::= apertura_while condicion bloque {: parser.ciclosAbiertos--; :} ;
 
-sentencia_for ::= apertura_for encabezado_for bloque {: parser.tabla.cerrarAlcance(); :} ;
+apertura_while ::= WHILE {: parser.ciclosAbiertos++; :} ;
 
-apertura_for ::= FOR:palabraFor {: parser.tabla.abrirAlcance("for linea " + (palabraForleft + 1)); :} ;
+sentencia_for ::= apertura_for encabezado_for bloque
+                  {: parser.ciclosAbiertos--;
+                     parser.tabla.cerrarAlcance(); :}
+              ;
+
+apertura_for ::= FOR:palabraFor
+                 {: parser.ciclosAbiertos++;
+                    parser.tabla.abrirAlcance("for linea " + (palabraForleft + 1)); :}
+             ;
 
 encabezado_for ::= PARENTESIS_ABRE inicio_for expresion:valor FIN_SENT:fin actualizacion_for PARENTESIS_CIERRA
                    {: parser.validarCondicion(valor, finleft, finright); :}
@@ -680,7 +695,9 @@ actualizacion_for ::= expresion
 sentencia_return ::= RETURN:palabraReturn expresion:valor FIN_SENT
                      {: parser.validarReturn(valor, palabraReturnleft, palabraReturnright); :}
                  ;
-sentencia_break ::= BREAK FIN_SENT ;
+sentencia_break ::= BREAK:palabraBreak FIN_SENT
+                    {: parser.validarBreak(palabraBreakleft, palabraBreakright); :}
+                ;
 
 sentencia_write ::= WRITE PARENTESIS_ABRE param_write PARENTESIS_CIERRA FIN_SENT ;
 
