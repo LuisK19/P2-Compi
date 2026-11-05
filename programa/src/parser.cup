@@ -15,9 +15,12 @@ import src.TablaSimbolos;
 parser code {:
     Lexer analizadorLexico;
     private boolean huboErroresSintacticos = false;
+    private int cantidadErroresSintacticos = 0;
     private boolean huboErroresSemanticos = false;
     TablaSimbolos tabla = new TablaSimbolos();
     SimboloFuncion funcionActual;
+    boolean funcionTieneReturn = false;
+    int erroresSintacticosAlIniciarFuncion = 0;
     HashMap<String, SimboloFuncion> funcionesDeclaradas = new HashMap<>();
 
     public Parser(Lexer analizadorLexico) {
@@ -30,6 +33,7 @@ parser code {:
 
     public void report_error(String mensaje, Object infoAdicional) {
         huboErroresSintacticos = true;
+        cantidadErroresSintacticos++;
         String textoError = "Error de sintaxis";
         
         if (infoAdicional instanceof Symbol) {
@@ -258,6 +262,29 @@ parser code {:
         }
     }
 
+    void validarReturn(ResultadoExpresion valor, int linea, int columna) {
+        funcionTieneReturn = true;
+        String tipoFuncion = funcionActual.getTipo();
+        if (tipoFuncion.equals("void")) {
+            reportarErrorSemantico("'" + funcionActual.getNombre() + "' es de tipo void y no puede tener return",
+                    linea, columna);
+            return;
+        }
+        if (!valor.esError() && !valor.getTipo().equals(tipoFuncion)) {
+            reportarErrorSemantico("la funcion '" + funcionActual.getNombre() + "' debe retornar " + tipoFuncion
+                    + ", no " + valor.getTipo(), linea, columna);
+        }
+    }
+
+    // Si hubo errores de sintaxis en la funcion, un return pudo haberse descartado al recuperarse.
+    void validarFuncionConReturn() {
+        boolean huboErroresEnFuncion = cantidadErroresSintacticos > erroresSintacticosAlIniciarFuncion;
+        if (!funcionTieneReturn && !huboErroresEnFuncion) {
+            reportarErrorSemantico("la funcion '" + funcionActual.getNombre() + "' no tiene ningun return",
+                    funcionActual.getLinea() - 1, funcionActual.getColumna() - 1);
+        }
+    }
+
     void validarTipoRetorno(String nombre, String tipo, int linea, int columna) {
         if (!tipo.equals("int") && !tipo.equals("float") && !tipo.equals("char") && !tipo.equals("bool")) {
             reportarErrorSemantico("la funcion '" + nombre + "' no puede retornar " + tipo
@@ -312,6 +339,8 @@ parser code {:
 
     void agregarFuncion(String nombre, String tipoRetorno, int linea, int columna) {
         funcionActual = new SimboloFuncion(nombre, tipoRetorno, linea + 1, columna + 1);
+        funcionTieneReturn = false;
+        erroresSintacticosAlIniciarFuncion = cantidadErroresSintacticos;
         if (!estaDuplicado(nombre, linea, columna)) {
             tabla.agregar(funcionActual);
         }
@@ -634,7 +663,9 @@ actualizacion_for ::= expresion
                        parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright); :}
                   ;
 
-sentencia_return ::= RETURN expresion FIN_SENT ;
+sentencia_return ::= RETURN:palabraReturn expresion:valor FIN_SENT
+                     {: parser.validarReturn(valor, palabraReturnleft, palabraReturnright); :}
+                 ;
 sentencia_break ::= BREAK FIN_SENT ;
 
 sentencia_write ::= WRITE PARENTESIS_ABRE param_write PARENTESIS_CIERRA FIN_SENT ;
@@ -652,8 +683,12 @@ sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA F
                    {: parser.tipoDeVariable(nombre, nombreleft, nombreright); :}
                ;
 
-funcion ::= encabezado_funcion param_fun cuerpo_funcion {: parser.tabla.cerrarAlcance(); :}
-        | encabezado_funcion error cuerpo_funcion {: parser.tabla.cerrarAlcance(); :}
+funcion ::= encabezado_funcion param_fun cuerpo_funcion
+                {: parser.validarFuncionConReturn();
+                   parser.tabla.cerrarAlcance(); :}
+        | encabezado_funcion error cuerpo_funcion
+                {: parser.validarFuncionConReturn();
+                   parser.tabla.cerrarAlcance(); :}
         ;
 
 encabezado_funcion ::= tipo:tipoRetorno identificador:nombre
