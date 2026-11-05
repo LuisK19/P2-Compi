@@ -1,4 +1,4 @@
-package src;
+package src.tabla;
 
 import java.io.BufferedWriter;
 import java.io.IOException;

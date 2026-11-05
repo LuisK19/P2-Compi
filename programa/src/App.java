@@ -81,14 +81,15 @@ public class App {
                 "generated/Lexer.java",
                 "generated/Parser.java",
                 "generated/sym.java",
-                "src/Simbolo.java",
-                "src/SimboloArreglo.java",
-                "src/SimboloFuncion.java",
-                "src/Alcance.java",
-                "src/TablaSimbolos.java",
-                "src/ResultadoExpresion.java",
-                "src/RecolectorFunciones.java",
-                "src/GeneradorCodigo.java",
+                "src/tabla/Simbolo.java",
+                "src/tabla/SimboloArreglo.java",
+                "src/tabla/SimboloFuncion.java",
+                "src/tabla/Alcance.java",
+                "src/tabla/TablaSimbolos.java",
+                "src/semantico/ResultadoExpresion.java",
+                "src/semantico/AnalizadorSemantico.java",
+                "src/semantico/RecolectorFunciones.java",
+                "src/codigo/GeneradorCodigo.java",
                 "src/Analizador.java");
 
         if (resultado != 0) {

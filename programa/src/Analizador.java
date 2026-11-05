@@ -4,10 +4,12 @@ import generated.Lexer;
 import generated.Parser;
 import generated.sym;
 import java_cup.runtime.Symbol;
+import src.semantico.RecolectorFunciones;
 
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -27,22 +29,27 @@ public class Analizador {
      * <p>El primer argumento es el archivo de entrada, el segundo la ruta del
      * reporte CSV de tokens, el tercero la ruta del reporte de la tabla de
      * símbolos y el cuarto la ruta del código intermedio. Si no se
-     * proporcionan, se usan rutas predeterminadas.
+     * proporcionan, los reportes se guardan en la carpeta salida.
      *
      * @param args rutas opcionales de entrada y de los reportes
+     * @throws IOException si no se pueden crear las carpetas de los reportes
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         usarSalidaUtf8();
 
         String archivoEntrada = args.length > 0 ? args[0] : "tests/validos/semantico_funciones.txt";
-        String archivoSalidaTokens = args.length > 1 ? args[1] : "tokens_encontrados.csv";
-        String archivoSalidaTabla = args.length > 2 ? args[2] : "tabla_simbolos.txt";
-        String archivoSalidaCodigo = args.length > 3 ? args[3] : "codigo_intermedio.txt";
+        String archivoSalidaTokens = args.length > 1 ? args[1] : "salida/tokens_encontrados.csv";
+        String archivoSalidaTabla = args.length > 2 ? args[2] : "salida/tabla_simbolos.txt";
+        String archivoSalidaCodigo = args.length > 3 ? args[3] : "salida/codigo_intermedio.txt";
 
         if (!new File(archivoEntrada).exists()) {
             System.err.println("No se encontro el archivo de entrada: " + archivoEntrada);
             return;
         }
+
+        crearCarpetaDe(archivoSalidaTokens);
+        crearCarpetaDe(archivoSalidaTabla);
+        crearCarpetaDe(archivoSalidaCodigo);
 
         System.out.println("--- INICIANDO COMPILADOR ---");
         System.out.println("Archivo de entrada: " + archivoEntrada);
@@ -53,6 +60,19 @@ public class Analizador {
         }
 
         ejecutarAnalisisSintactico(archivoEntrada, archivoSalidaTabla, archivoSalidaCodigo);
+    }
+
+    /**
+     * Crea la carpeta donde va un archivo de salida, si todavía no existe.
+     *
+     * @param rutaArchivo ruta del archivo que se va a escribir
+     * @throws IOException si no se puede crear la carpeta
+     */
+    private static void crearCarpetaDe(String rutaArchivo) throws IOException {
+        Path carpeta = Path.of(rutaArchivo).getParent();
+        if (carpeta != null) {
+            Files.createDirectories(carpeta);
+        }
     }
 
     /**

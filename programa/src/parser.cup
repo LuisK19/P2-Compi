@@ -3,39 +3,28 @@ package generated;
 import java_cup.runtime.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import src.ResultadoExpresion;
-import src.Simbolo;
-import src.SimboloArreglo;
-import src.SimboloFuncion;
-import src.TablaSimbolos;
+import src.semantico.AnalizadorSemantico;
+import src.semantico.ResultadoExpresion;
+import src.tabla.SimboloFuncion;
+import src.tabla.TablaSimbolos;
 
 /* Código auxiliar del parser: conserva el lexer como fuente de tokens, adapta
- * los errores de CUP para incluir ubicación y lexema, y guarda la tabla de símbolos
+ * los errores de CUP para incluir ubicación y lexema, y delega las
+ * comprobaciones semánticas en AnalizadorSemantico.
  */
 parser code {:
     Lexer analizadorLexico;
     private boolean huboErroresSintacticos = false;
-    private int cantidadErroresSintacticos = 0;
-    private boolean huboErroresSemanticos = false;
-    TablaSimbolos tabla = new TablaSimbolos();
-    SimboloFuncion funcionActual;
-    boolean funcionTieneReturn = false;
-    int erroresSintacticosAlIniciarFuncion = 0;
-    int ciclosAbiertos = 0;
-    HashMap<String, SimboloFuncion> funcionesDeclaradas = new HashMap<>();
+    AnalizadorSemantico semantico = new AnalizadorSemantico();
     String codigoIntermedio = "";
 
     public Parser(Lexer analizadorLexico) {
         this.analizadorLexico = analizadorLexico;
     }
 
-    public void setFuncionesDeclaradas(HashMap<String, SimboloFuncion> funcionesDeclaradas) {
-        this.funcionesDeclaradas = funcionesDeclaradas;
-    }
-
     public void report_error(String mensaje, Object infoAdicional) {
         huboErroresSintacticos = true;
-        cantidadErroresSintacticos++;
+        semantico.contarErrorSintactico();
         String textoError = "Error de sintaxis";
         
         if (infoAdicional instanceof Symbol) {
@@ -63,313 +52,19 @@ parser code {:
     }
 
     public boolean huboErroresSemanticos() {
-        return huboErroresSemanticos;
+        return semantico.huboErrores();
+    }
+
+    public void setFuncionesDeclaradas(HashMap<String, SimboloFuncion> funcionesDeclaradas) {
+        semantico.setFuncionesDeclaradas(funcionesDeclaradas);
     }
 
     public TablaSimbolos getTablaSimbolos() {
-        return tabla;
+        return semantico.getTablaSimbolos();
     }
 
     public String getCodigoIntermedio() {
         return codigoIntermedio;
-    }
-
-    // En los metodos siguientes la linea y columna llegan desde 0; se muestran y guardan desde 1.
-    void reportarErrorSemantico(String mensaje, int linea, int columna) {
-        huboErroresSemanticos = true;
-        System.err.println("Error semantico en la linea " + (linea + 1)
-                + ", columna " + (columna + 1) + ": " + mensaje);
-    }
-
-    Simbolo buscarDeclarado(String nombre, int linea, int columna) {
-        Simbolo simbolo = tabla.buscar(nombre);
-        if (simbolo == null) {
-            reportarErrorSemantico("el identificador '" + nombre + "' no ha sido declarado", linea, columna);
-        }
-        return simbolo;
-    }
-
-    String tipoDeVariable(String nombre, int linea, int columna) {
-        Simbolo simbolo = buscarDeclarado(nombre, linea, columna);
-        if (simbolo == null) {
-            return ResultadoExpresion.TIPO_ERROR;
-        }
-        if (simbolo.getCategoria().equals("arreglo")) {
-            reportarErrorSemantico("el arreglo '" + nombre + "' debe usarse con un indice", linea, columna);
-            return ResultadoExpresion.TIPO_ERROR;
-        }
-        if (simbolo.getCategoria().equals("funcion")) {
-            reportarErrorSemantico("'" + nombre + "' es una funcion y no puede usarse como variable", linea, columna);
-            return ResultadoExpresion.TIPO_ERROR;
-        }
-        return simbolo.getTipo();
-    }
-
-    String tipoDeArreglo(String nombre, int linea, int columna) {
-        Simbolo simbolo = buscarDeclarado(nombre, linea, columna);
-        if (simbolo == null) {
-            return ResultadoExpresion.TIPO_ERROR;
-        }
-        if (!simbolo.getCategoria().equals("arreglo")) {
-            reportarErrorSemantico("'" + nombre + "' no es un arreglo", linea, columna);
-            return ResultadoExpresion.TIPO_ERROR;
-        }
-        return simbolo.getTipo();
-    }
-
-    boolean aceptaTipoAritmetico(String operador, String tipo) {
-        if (operador.equals("/")) {
-            return tipo.equals("float");
-        }
-        if (operador.equals("//") || operador.equals("mod") || operador.equals("pot")) {
-            return tipo.equals("int");
-        }
-        return tipo.equals("int") || tipo.equals("float");
-    }
-
-    boolean aceptaTipoRelacional(String operador, String tipo) {
-        if (operador.equals("==") || operador.equals("!=")) {
-            return tipo.equals("int") || tipo.equals("float") || tipo.equals("bool") || tipo.equals("char");
-        }
-        return tipo.equals("int") || tipo.equals("float");
-    }
-
-    ResultadoExpresion errorDeOperandos(String operador, ResultadoExpresion izquierdo,
-            ResultadoExpresion derecho, int linea, int columna) {
-        reportarErrorSemantico("el operador '" + operador + "' no acepta operandos de tipo "
-                + izquierdo.getTipo() + " y " + derecho.getTipo(), linea, columna);
-        return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
-    }
-
-    ResultadoExpresion operacionAritmetica(String operador, ResultadoExpresion izquierdo,
-            ResultadoExpresion derecho, int linea, int columna) {
-        if (izquierdo.esError() || derecho.esError()) {
-            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
-        }
-        String tipo = izquierdo.getTipo();
-        if (!tipo.equals(derecho.getTipo()) || !aceptaTipoAritmetico(operador, tipo)) {
-            return errorDeOperandos(operador, izquierdo, derecho, linea, columna);
-        }
-        return new ResultadoExpresion(tipo);
-    }
-
-    ResultadoExpresion operacionRelacional(String operador, ResultadoExpresion izquierdo,
-            ResultadoExpresion derecho, int linea, int columna) {
-        if (izquierdo.esError() || derecho.esError()) {
-            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
-        }
-        String tipo = izquierdo.getTipo();
-        if (!tipo.equals(derecho.getTipo()) || !aceptaTipoRelacional(operador, tipo)) {
-            return errorDeOperandos(operador, izquierdo, derecho, linea, columna);
-        }
-        return new ResultadoExpresion("bool");
-    }
-
-    ResultadoExpresion operacionLogica(String operador, ResultadoExpresion izquierdo,
-            ResultadoExpresion derecho, int linea, int columna) {
-        if (izquierdo.esError() || derecho.esError()) {
-            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
-        }
-        if (!izquierdo.getTipo().equals("bool") || !derecho.getTipo().equals("bool")) {
-            return errorDeOperandos(operador, izquierdo, derecho, linea, columna);
-        }
-        return new ResultadoExpresion("bool");
-    }
-
-    ResultadoExpresion negacionLogica(ResultadoExpresion operando, int linea, int columna) {
-        if (operando.esError()) {
-            return operando;
-        }
-        if (!operando.getTipo().equals("bool")) {
-            reportarErrorSemantico("el operador 'Σ' no acepta un operando de tipo " + operando.getTipo(),
-                    linea, columna);
-            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
-        }
-        return new ResultadoExpresion("bool");
-    }
-
-    ResultadoExpresion operacionIncremento(String operador, String nombre, int linea, int columna) {
-        String tipo = tipoDeVariable(nombre, linea, columna);
-        if (tipo.equals(ResultadoExpresion.TIPO_ERROR)) {
-            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
-        }
-        if (!tipo.equals("int") && !tipo.equals("float")) {
-            reportarErrorSemantico("el operador '" + operador + "' solo se aplica a variables int o float y '"
-                    + nombre + "' es de tipo " + tipo, linea, columna);
-            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
-        }
-        return new ResultadoExpresion(tipo);
-    }
-
-    void validarAsignacion(String nombre, String tipoDestino, ResultadoExpresion valor, int linea, int columna) {
-        if (tipoDestino.equals(ResultadoExpresion.TIPO_ERROR) || valor.esError()) {
-            return;
-        }
-        if (!tipoDestino.equals(valor.getTipo())) {
-            reportarErrorSemantico("no se puede asignar un valor de tipo " + valor.getTipo() + " a '"
-                    + nombre + "', que es de tipo " + tipoDestino, linea, columna);
-        }
-    }
-
-    void validarIndice(ResultadoExpresion indice, int linea, int columna) {
-        if (!indice.esError() && !indice.getTipo().equals("int")) {
-            reportarErrorSemantico("el indice de un arreglo debe ser de tipo int, no " + indice.getTipo(),
-                    linea, columna);
-        }
-    }
-
-    void validarCondicion(ResultadoExpresion condicion, int linea, int columna) {
-        if (!condicion.esError() && !condicion.getTipo().equals("bool")) {
-            reportarErrorSemantico("la condicion debe ser de tipo bool, no " + condicion.getTipo(), linea, columna);
-        }
-    }
-
-    ResultadoExpresion operacionPotencia(ResultadoExpresion base, ResultadoExpresion exponente,
-            int linea, int columna) {
-        ResultadoExpresion resultado = operacionAritmetica("pot", base, exponente, linea, columna);
-        if (!resultado.esError() && exponente.esLiteralNegativo()) {
-            reportarErrorSemantico("el exponente de 'pot' no puede ser negativo", linea, columna);
-            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
-        }
-        return resultado;
-    }
-
-    ResultadoExpresion llamadaFuncion(String nombre, ArrayList<ResultadoExpresion> argumentos,
-            int linea, int columna) {
-        Simbolo simbolo = tabla.buscar(nombre);
-        if (simbolo != null && !simbolo.getCategoria().equals("funcion")) {
-            reportarErrorSemantico("'" + nombre + "' no es una funcion", linea, columna);
-            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
-        }
-        SimboloFuncion funcion = funcionesDeclaradas.get(nombre);
-        if (funcion == null) {
-            reportarErrorSemantico("la funcion '" + nombre + "' no ha sido declarada", linea, columna);
-            return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
-        }
-        validarArgumentos(funcion, argumentos, linea, columna);
-        return new ResultadoExpresion(funcion.getTipo());
-    }
-
-    void validarArgumentos(SimboloFuncion funcion, ArrayList<ResultadoExpresion> argumentos,
-            int linea, int columna) {
-        ArrayList<String> tiposParametros = funcion.getTiposParametros();
-        if (argumentos.size() != tiposParametros.size()) {
-            reportarErrorSemantico("la funcion '" + funcion.getNombre() + "' espera " + tiposParametros.size()
-                    + " argumentos y recibe " + argumentos.size(), linea, columna);
-            return;
-        }
-        for (int i = 0; i < argumentos.size(); i++) {
-            ResultadoExpresion argumento = argumentos.get(i);
-            String tipoEsperado = tiposParametros.get(i);
-            if (!argumento.esError() && !argumento.getTipo().equals(tipoEsperado)) {
-                reportarErrorSemantico("el argumento " + (i + 1) + " de '" + funcion.getNombre()
-                        + "' debe ser de tipo " + tipoEsperado + ", no " + argumento.getTipo(), linea, columna);
-            }
-        }
-    }
-
-    void validarReturn(ResultadoExpresion valor, int linea, int columna) {
-        funcionTieneReturn = true;
-        String tipoFuncion = funcionActual.getTipo();
-        if (tipoFuncion.equals("void")) {
-            reportarErrorSemantico("'" + funcionActual.getNombre() + "' es de tipo void y no puede tener return",
-                    linea, columna);
-            return;
-        }
-        if (!valor.esError() && !valor.getTipo().equals(tipoFuncion)) {
-            reportarErrorSemantico("la funcion '" + funcionActual.getNombre() + "' debe retornar " + tipoFuncion
-                    + ", no " + valor.getTipo(), linea, columna);
-        }
-    }
-
-    // Si hubo errores de sintaxis en la funcion, un return pudo haberse descartado al recuperarse.
-    void validarFuncionConReturn() {
-        boolean huboErroresEnFuncion = cantidadErroresSintacticos > erroresSintacticosAlIniciarFuncion;
-        if (!funcionTieneReturn && !huboErroresEnFuncion) {
-            reportarErrorSemantico("la funcion '" + funcionActual.getNombre() + "' no tiene ningun return",
-                    funcionActual.getLinea() - 1, funcionActual.getColumna() - 1);
-        }
-    }
-
-    void validarBreak(int linea, int columna) {
-        if (ciclosAbiertos == 0) {
-            reportarErrorSemantico("break solo se puede usar dentro de un while o un for", linea, columna);
-        }
-    }
-
-    void validarTipoRead(String nombre, String tipo, int linea, int columna) {
-        if (tipo.equals("string") || tipo.equals("bool")) {
-            reportarErrorSemantico("read solo puede leer variables int, float o char y '" + nombre
-                    + "' es de tipo " + tipo, linea, columna);
-        }
-    }
-
-    void validarTipoWrite(String nombre, String tipo, int linea, int columna) {
-        if (tipo.equals("char")) {
-            reportarErrorSemantico("write solo puede escribir string, int, bool o float y '" + nombre
-                    + "' es de tipo char", linea, columna);
-        }
-    }
-
-    void validarTipoRetorno(String nombre, String tipo, int linea, int columna) {
-        if (!tipo.equals("int") && !tipo.equals("float") && !tipo.equals("char") && !tipo.equals("bool")) {
-            reportarErrorSemantico("la funcion '" + nombre + "' no puede retornar " + tipo
-                    + "; solo se permite int, float, char o bool", linea, columna);
-        }
-    }
-
-    boolean esTipoDeArreglo(String tipo) {
-        return tipo.equals("int") || tipo.equals("float");
-    }
-
-    void validarArreglo(String nombre, String tipo, int tamano, int linea, int columna) {
-        if (!esTipoDeArreglo(tipo)) {
-            reportarErrorSemantico("el arreglo '" + nombre + "' solo puede ser de tipo int o float", linea, columna);
-        }
-        if (tamano <= 0) {
-            reportarErrorSemantico("el tamano del arreglo '" + nombre + "' debe ser mayor que 0", linea, columna);
-        }
-    }
-
-    void validarValoresArreglo(String nombre, String tipo, int tamano, String tipoValores, int cantidad,
-            int linea, int columna) {
-        if (esTipoDeArreglo(tipo) && !tipo.equals(tipoValores)) {
-            reportarErrorSemantico("el arreglo '" + nombre + "' es de tipo " + tipo
-                    + " pero sus valores son de tipo " + tipoValores, linea, columna);
-        }
-        if (tamano > 0 && cantidad != tamano) {
-            reportarErrorSemantico("el arreglo '" + nombre + "' tiene tamano " + tamano
-                    + " pero recibe " + cantidad + " valores", linea, columna);
-        }
-    }
-
-    boolean estaDuplicado(String nombre, int linea, int columna) {
-        if (tabla.buscarEnAlcanceActual(nombre) == null) {
-            return false;
-        }
-        reportarErrorSemantico("el identificador '" + nombre + "' ya fue declarado en este alcance", linea, columna);
-        return true;
-    }
-
-    void agregarSimbolo(String nombre, String categoria, String tipo, int linea, int columna) {
-        if (!estaDuplicado(nombre, linea, columna)) {
-            tabla.agregar(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
-        }
-    }
-
-    void agregarArreglo(String nombre, String tipo, int tamano, int linea, int columna) {
-        if (!estaDuplicado(nombre, linea, columna)) {
-            tabla.agregar(new SimboloArreglo(nombre, tipo, tamano, linea + 1, columna + 1));
-        }
-    }
-
-    void agregarFuncion(String nombre, String tipoRetorno, int linea, int columna) {
-        funcionActual = new SimboloFuncion(nombre, tipoRetorno, linea + 1, columna + 1);
-        funcionTieneReturn = false;
-        erroresSintacticosAlIniciarFuncion = cantidadErroresSintacticos;
-        if (!estaDuplicado(nombre, linea, columna)) {
-            tabla.agregar(funcionActual);
-        }
     }
 
     // Cantidad de tokens que deben leerse bien despues de un error para reportar el siguiente.
@@ -485,40 +180,40 @@ valor_arreglo_float ::= literal_float
                     ;
 
 declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
-                {: parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
+                {: parser.semantico.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
                    RESULT = ""; :}
             | VAL tipo:tipoDato identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
-                {: parser.validarAsignacion(nombre, tipoDato, valor, asigleft, asigright);
-                   parser.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
+                {: parser.semantico.validarAsignacion(nombre, tipoDato, valor, asigleft, asigright);
+                   parser.semantico.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
                    RESULT = ""; :}
             ;
 
 declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano FIN_SENT
-                        {: parser.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                        {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                           parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            RESULT = ""; :}
                     | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_int:cantidad LLAVE_CIERRA FIN_SENT
-                        {: parser.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           parser.validarValoresArreglo(nombre, tipoDato, tamano, "int", cantidad, nombreleft, nombreright);
-                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                        {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                           parser.semantico.validarValoresArreglo(nombre, tipoDato, tamano, "int", cantidad, nombreleft, nombreright);
+                           parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            RESULT = ""; :}
                     | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_float:cantidad LLAVE_CIERRA FIN_SENT
-                        {: parser.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           parser.validarValoresArreglo(nombre, tipoDato, tamano, "float", cantidad, nombreleft, nombreright);
-                           parser.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                        {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
+                           parser.semantico.validarValoresArreglo(nombre, tipoDato, tamano, "float", cantidad, nombreleft, nombreright);
+                           parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            RESULT = ""; :}
                     ;
 
 tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = tamano; :} ;
 
 asignacion ::= identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
-                {: String tipoDestino = parser.tipoDeVariable(nombre, nombreleft, nombreright);
-                   parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
+                {: String tipoDestino = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
+                   parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
                    RESULT = ""; :}
            | identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice CORCHETE_CIERRA ASIGNACION:asig expresion:valor FIN_SENT
-                {: String tipoDestino = parser.tipoDeArreglo(nombre, nombreleft, nombreright);
-                   parser.validarIndice(indice, corcheteleft, corcheteright);
-                   parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
+                {: String tipoDestino = parser.semantico.tipoDeArreglo(nombre, nombreleft, nombreright);
+                   parser.semantico.validarIndice(indice, corcheteleft, corcheteright);
+                   parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
                    RESULT = ""; :}
            ;
 
@@ -529,15 +224,15 @@ expr_log ::= operacion_log:valor {: RESULT = valor; :}
          ;
 
 operacion_log ::= operando_log:izquierdo OP_AND:op operando_log:derecho
-                    {: RESULT = parser.operacionLogica("λ", izquierdo, derecho, opleft, opright); :}
+                    {: RESULT = parser.semantico.operacionLogica("λ", izquierdo, derecho, opleft, opright); :}
               | operando_log:izquierdo OP_OR:op operando_log:derecho
-                    {: RESULT = parser.operacionLogica("θ", izquierdo, derecho, opleft, opright); :}
+                    {: RESULT = parser.semantico.operacionLogica("θ", izquierdo, derecho, opleft, opright); :}
               | negacion:valor
                     {: RESULT = valor; :}
               ;
 
 negacion ::= OP_NOT:op operando_log:operando
-                {: RESULT = parser.negacionLogica(operando, opleft, opright); :}
+                {: RESULT = parser.semantico.negacionLogica(operando, opleft, opright); :}
          ;
 
 operando_log ::= PARENTESIS_ABRE expresion:valor PARENTESIS_CIERRA {: RESULT = valor; :}
@@ -549,9 +244,9 @@ expr_rel ::= operacion_rel:valor {: RESULT = valor; :}
          ;
 
 operacion_rel ::= operando_rel:izquierdo op_orden:op operando_rel:derecho
-                    {: RESULT = parser.operacionRelacional(op, izquierdo, derecho, opleft, opright); :}
+                    {: RESULT = parser.semantico.operacionRelacional(op, izquierdo, derecho, opleft, opright); :}
               | operando_igualdad:izquierdo op_igualdad:op operando_igualdad:derecho
-                    {: RESULT = parser.operacionRelacional(op, izquierdo, derecho, opleft, opright); :}
+                    {: RESULT = parser.semantico.operacionRelacional(op, izquierdo, derecho, opleft, opright); :}
               ;
 
 operando_rel ::= CORCHETE_ABRE expr_arit:valor CORCHETE_CIERRA {: RESULT = valor; :} ;
@@ -574,35 +269,35 @@ op_igualdad ::= OP_IGUAL {: RESULT = "=="; :}
 expr_arit ::= term_mul_div:valor
                 {: RESULT = valor; :}
           | expr_arit:izquierdo OP_MOD:op term_mul_div:derecho
-                {: RESULT = parser.operacionAritmetica("mod", izquierdo, derecho, opleft, opright); :}
+                {: RESULT = parser.semantico.operacionAritmetica("mod", izquierdo, derecho, opleft, opright); :}
           ;
 
 term_mul_div ::= term_sum_res:valor
                 {: RESULT = valor; :}
              | term_mul_div:izquierdo OP_MULT:op term_sum_res:derecho
-                {: RESULT = parser.operacionAritmetica("*", izquierdo, derecho, opleft, opright); :}
+                {: RESULT = parser.semantico.operacionAritmetica("*", izquierdo, derecho, opleft, opright); :}
              | term_mul_div:izquierdo OP_DIV:op term_sum_res:derecho
-                {: RESULT = parser.operacionAritmetica("/", izquierdo, derecho, opleft, opright); :}
+                {: RESULT = parser.semantico.operacionAritmetica("/", izquierdo, derecho, opleft, opright); :}
              | term_mul_div:izquierdo OP_DIV_ENT:op term_sum_res:derecho
-                {: RESULT = parser.operacionAritmetica("//", izquierdo, derecho, opleft, opright); :}
+                {: RESULT = parser.semantico.operacionAritmetica("//", izquierdo, derecho, opleft, opright); :}
              ;
 
 term_sum_res ::= potencia:valor
                 {: RESULT = valor; :}
              | term_sum_res:izquierdo OP_SUMA:op potencia:derecho
-                {: RESULT = parser.operacionAritmetica("+", izquierdo, derecho, opleft, opright); :}
+                {: RESULT = parser.semantico.operacionAritmetica("+", izquierdo, derecho, opleft, opright); :}
              | term_sum_res:izquierdo OP_MENOS:op potencia:derecho
-                {: RESULT = parser.operacionAritmetica("-", izquierdo, derecho, opleft, opright); :}
+                {: RESULT = parser.semantico.operacionAritmetica("-", izquierdo, derecho, opleft, opright); :}
              ;
 
 potencia ::= atomo:valor
                 {: RESULT = valor; :}
          | atomo:base OP_POT:op potencia:exponente
-                {: RESULT = parser.operacionPotencia(base, exponente, opleft, opright); :}
+                {: RESULT = parser.semantico.operacionPotencia(base, exponente, opleft, opright); :}
          ;
 
 atomo ::= literal:valor                                     {: RESULT = valor; :}
-      | identificador:nombre                                {: RESULT = new ResultadoExpresion(parser.tipoDeVariable(nombre, nombreleft, nombreright)); :}
+      | identificador:nombre                                {: RESULT = new ResultadoExpresion(parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright)); :}
       | PARENTESIS_ABRE expresion:valor PARENTESIS_CIERRA   {: RESULT = valor; :}
       | negativo:valor                                      {: RESULT = valor; :}
       | incremento:valor                                    {: RESULT = valor; :}
@@ -612,8 +307,8 @@ atomo ::= literal:valor                                     {: RESULT = valor; :
       ;
 
 acceso_arreglo ::= identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice CORCHETE_CIERRA
-                   {: parser.validarIndice(indice, corcheteleft, corcheteright);
-                      RESULT = new ResultadoExpresion(parser.tipoDeArreglo(nombre, nombreleft, nombreright)); :}
+                   {: parser.semantico.validarIndice(indice, corcheteleft, corcheteright);
+                      RESULT = new ResultadoExpresion(parser.semantico.tipoDeArreglo(nombre, nombreleft, nombreright)); :}
                ;
 
 negativo ::= negativo_int
@@ -627,8 +322,8 @@ negativo ::= negativo_int
 negativo_int ::= OP_MENOS literal_int ;
 negativo_float ::= OP_MENOS literal_float ;
 
-incremento ::= identificador:nombre OP_INC {: RESULT = parser.operacionIncremento("++", nombre, nombreleft, nombreright); :} ;
-decremento ::= identificador:nombre OP_DEC {: RESULT = parser.operacionIncremento("--", nombre, nombreleft, nombreright); :} ;
+incremento ::= identificador:nombre OP_INC {: RESULT = parser.semantico.operacionIncremento("++", nombre, nombreleft, nombreright); :} ;
+decremento ::= identificador:nombre OP_DEC {: RESULT = parser.semantico.operacionIncremento("--", nombre, nombreleft, nombreright); :} ;
 
 sentencia ::= declaracion:codigo           {: RESULT = codigo; :}
           | declaracion_arreglo:codigo     {: RESULT = codigo; :}
@@ -643,7 +338,7 @@ sentencia ::= declaracion:codigo           {: RESULT = codigo; :}
           ;
 
 condicion ::= PARENTESIS_ABRE:parentesis expresion:valor PARENTESIS_CIERRA
-                {: parser.validarCondicion(valor, parentesisleft, parentesisright); :}
+                {: parser.semantico.validarCondicion(valor, parentesisleft, parentesisright); :}
           | PARENTESIS_ABRE error PARENTESIS_CIERRA
           ;
 
@@ -661,14 +356,14 @@ sentencia_elif ::= ELIF condicion bloque ;
 sentencia_else ::= ELSE bloque ;
 
 bloque ::= inicio_bloque lista_lineas:codigo LLAVE_CIERRA
-                {: parser.tabla.cerrarAlcance();
+                {: parser.semantico.cerrarAlcance();
                    RESULT = codigo; :}
        | inicio_bloque error LLAVE_CIERRA
-                {: parser.tabla.cerrarAlcance();
+                {: parser.semantico.cerrarAlcance();
                    RESULT = ""; :}
        ;
 
-inicio_bloque ::= LLAVE_ABRE:llave {: parser.tabla.abrirAlcance("bloque linea " + (llaveleft + 1)); :} ;
+inicio_bloque ::= LLAVE_ABRE:llave {: parser.semantico.abrirAlcance("bloque linea " + (llaveleft + 1)); :} ;
 
 lista_lineas ::= linea_bloque:codigo                      {: RESULT = codigo; :}
              | linea_bloque:codigo lista_lineas:resto     {: RESULT = codigo + resto; :}
@@ -687,25 +382,25 @@ estructura_control ::= sentencia_if:codigo     {: RESULT = codigo; :}
                    ;
 
 sentencia_while ::= apertura_while condicion bloque
-                    {: parser.ciclosAbiertos--;
+                    {: parser.semantico.salirDeCiclo();
                        RESULT = ""; :}
                 ;
 
-apertura_while ::= WHILE {: parser.ciclosAbiertos++; :} ;
+apertura_while ::= WHILE {: parser.semantico.entrarACiclo(); :} ;
 
 sentencia_for ::= apertura_for encabezado_for bloque
-                  {: parser.ciclosAbiertos--;
-                     parser.tabla.cerrarAlcance();
+                  {: parser.semantico.salirDeCiclo();
+                     parser.semantico.cerrarAlcance();
                      RESULT = ""; :}
               ;
 
 apertura_for ::= FOR:palabraFor
-                 {: parser.ciclosAbiertos++;
-                    parser.tabla.abrirAlcance("for linea " + (palabraForleft + 1)); :}
+                 {: parser.semantico.entrarACiclo();
+                    parser.semantico.abrirAlcance("for linea " + (palabraForleft + 1)); :}
              ;
 
 encabezado_for ::= PARENTESIS_ABRE inicio_for expresion:valor FIN_SENT:fin actualizacion_for PARENTESIS_CIERRA
-                   {: parser.validarCondicion(valor, finleft, finright); :}
+                   {: parser.semantico.validarCondicion(valor, finleft, finright); :}
                ;
 
 inicio_for ::= declaracion
@@ -714,16 +409,16 @@ inicio_for ::= declaracion
 
 actualizacion_for ::= expresion
                   | identificador:nombre ASIGNACION:asig expresion:valor
-                    {: String tipoDestino = parser.tipoDeVariable(nombre, nombreleft, nombreright);
-                       parser.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright); :}
+                    {: String tipoDestino = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
+                       parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright); :}
                   ;
 
 sentencia_return ::= RETURN:palabraReturn expresion:valor FIN_SENT
-                     {: parser.validarReturn(valor, palabraReturnleft, palabraReturnright);
+                     {: parser.semantico.validarReturn(valor, palabraReturnleft, palabraReturnright);
                         RESULT = ""; :}
                  ;
 sentencia_break ::= BREAK:palabraBreak FIN_SENT
-                    {: parser.validarBreak(palabraBreakleft, palabraBreakright);
+                    {: parser.semantico.validarBreak(palabraBreakleft, palabraBreakright);
                        RESULT = ""; :}
                 ;
 
@@ -735,31 +430,31 @@ param_write ::= literal_str
             | literal_float
             | negativo
             | identificador:nombre
-                {: String tipo = parser.tipoDeVariable(nombre, nombreleft, nombreright);
-                   parser.validarTipoWrite(nombre, tipo, nombreleft, nombreright); :}
+                {: String tipo = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
+                   parser.semantico.validarTipoWrite(nombre, tipo, nombreleft, nombreright); :}
             | acceso_arreglo
             ;
 
 sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA FIN_SENT
-                   {: String tipo = parser.tipoDeVariable(nombre, nombreleft, nombreright);
-                      parser.validarTipoRead(nombre, tipo, nombreleft, nombreright);
+                   {: String tipo = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
+                      parser.semantico.validarTipoRead(nombre, tipo, nombreleft, nombreright);
                       RESULT = ""; :}
                ;
 
 funcion ::= encabezado_funcion param_fun cuerpo_funcion:cuerpo
-                {: parser.validarFuncionConReturn();
-                   parser.tabla.cerrarAlcance();
+                {: parser.semantico.validarFuncionConReturn();
+                   parser.semantico.cerrarAlcance();
                    RESULT = cuerpo; :}
         | encabezado_funcion error cuerpo_funcion:cuerpo
-                {: parser.validarFuncionConReturn();
-                   parser.tabla.cerrarAlcance();
+                {: parser.semantico.validarFuncionConReturn();
+                   parser.semantico.cerrarAlcance();
                    RESULT = cuerpo; :}
         ;
 
 encabezado_funcion ::= tipo:tipoRetorno identificador:nombre
-                       {: parser.validarTipoRetorno(nombre, tipoRetorno, nombreleft, nombreright);
-                          parser.agregarFuncion(nombre, tipoRetorno, nombreleft, nombreright);
-                          parser.tabla.abrirAlcance(nombre); :}
+                       {: parser.semantico.validarTipoRetorno(nombre, tipoRetorno, nombreleft, nombreright);
+                          parser.semantico.agregarFuncion(nombre, tipoRetorno, nombreleft, nombreright);
+                          parser.semantico.abrirAlcance(nombre); :}
                    ;
 
 cuerpo_funcion ::= LLAVE_ABRE lista_lineas:codigo LLAVE_CIERRA  {: RESULT = codigo; :}
@@ -771,8 +466,8 @@ params ::= parametro
        ;
 
 parametro ::= tipo:tipoDato identificador:nombre
-              {: parser.agregarSimbolo(nombre, "parametro", tipoDato, nombreleft, nombreright);
-                 parser.funcionActual.agregarTipoParametro(tipoDato); :}
+              {: parser.semantico.agregarSimbolo(nombre, "parametro", tipoDato, nombreleft, nombreright);
+                 parser.semantico.agregarTipoParametro(tipoDato); :}
           ;
 
 param_fun ::= PARENTESIS_ABRE params PARENTESIS_CIERRA
@@ -780,9 +475,9 @@ param_fun ::= PARENTESIS_ABRE params PARENTESIS_CIERRA
           ;
 
 llamada_fun ::= identificador:nombre PARENTESIS_ABRE args:argumentos PARENTESIS_CIERRA
-                {: RESULT = parser.llamadaFuncion(nombre, argumentos, nombreleft, nombreright); :}
+                {: RESULT = parser.semantico.llamadaFuncion(nombre, argumentos, nombreleft, nombreright); :}
             | identificador:nombre PARENTESIS_ABRE PARENTESIS_CIERRA
-                {: RESULT = parser.llamadaFuncion(nombre, new ArrayList<ResultadoExpresion>(), nombreleft, nombreright); :}
+                {: RESULT = parser.semantico.llamadaFuncion(nombre, new ArrayList<ResultadoExpresion>(), nombreleft, nombreright); :}
             ;
 
 args ::= expresion:valor
@@ -794,13 +489,13 @@ args ::= expresion:valor
      ;
 
 principal ::= encabezado_principal cuerpo_funcion:cuerpo
-                {: parser.tabla.cerrarAlcance();
+                {: parser.semantico.cerrarAlcance();
                    RESULT = cuerpo; :}
           ;
 
 encabezado_principal ::= VOID PRINCIPAL:palabraPrincipal PARENTESIS_ABRE PARENTESIS_CIERRA
-                         {: parser.agregarFuncion("principal", "void", palabraPrincipalleft, palabraPrincipalright);
-                            parser.tabla.abrirAlcance("principal"); :}
+                         {: parser.semantico.agregarFuncion("principal", "void", palabraPrincipalleft, palabraPrincipalright);
+                            parser.semantico.abrirAlcance("principal"); :}
                      ;
 
 globales_opc ::= declaracion:codigo globales_opc:resto           {: RESULT = codigo + resto; :}

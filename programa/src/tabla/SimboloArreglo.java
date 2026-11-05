@@ -1,4 +1,4 @@
-package src;
+package src.tabla;
 
 /**
  * Símbolo de un arreglo estático; además de la información básica guarda su tamaño.

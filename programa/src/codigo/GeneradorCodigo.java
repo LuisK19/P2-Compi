@@ -1,4 +1,4 @@
-package src;
+package src.codigo;
 
 /**
  * Da los nombres de temporales y los números de etiqueta que usa el código
