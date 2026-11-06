@@ -12,4 +12,6 @@ void principal є: :э ¿:
   val int x Ͱ suma є: p, q :э »
   x Ͱ suma є: p + 1, q * 2 :э »
   x Ͱ suma є: suma є: p, 1 :э, cero є: :э :э + 3 »
+  suma є: p, 3 :э »
+  cero є: :э »
 :?

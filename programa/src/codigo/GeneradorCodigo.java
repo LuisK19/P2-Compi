@@ -457,6 +457,16 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Genera una llamada usada como sentencia, sin guardar el valor retornado.
+     *
+     * @param llamada resultado dado por {@link #llamadaFuncion}
+     * @return código de los argumentos y de la instrucción call
+     */
+    public String llamadaComoSentencia(ResultadoExpresion llamada) {
+        return llamada.getCodigo() + instruccion(llamada.getDireccion());
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal

@@ -369,7 +369,7 @@ sentencia ::= declaracion:codigo           {: RESULT = codigo; :}
           | asignacion:codigo              {: RESULT = codigo; :}
           | incremento:valor FIN_SENT      {: RESULT = valor.getCodigo(); :}
           | decremento:valor FIN_SENT      {: RESULT = valor.getCodigo(); :}
-          | llamada_fun FIN_SENT           {: RESULT = ""; :}
+          | llamada_fun:llamada FIN_SENT   {: RESULT = parser.generador.llamadaComoSentencia(llamada); :}
           | sentencia_write:codigo         {: RESULT = codigo; :}
           | sentencia_read:codigo          {: RESULT = codigo; :}
           | sentencia_return:codigo        {: RESULT = codigo; :}
