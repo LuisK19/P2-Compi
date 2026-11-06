@@ -425,6 +425,38 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Prepara una llamada a función: calcula cada argumento y lo pasa con param
+     * antes de seguir con el siguiente.
+     *
+     * @param tipo tipo que retorna la función
+     * @param nombre nombre de la función
+     * @param argumentos argumentos en el orden de la llamada
+     * @return resultado con la instrucción call como dirección y el código de
+     *     los argumentos
+     */
+    public ResultadoExpresion llamadaFuncion(String tipo, String nombre,
+            ArrayList<ResultadoExpresion> argumentos) {
+        String codigo = "";
+        for (ResultadoExpresion argumento : argumentos) {
+            codigo += argumento.getCodigo() + instruccion("param " + argumento.getDireccion());
+        }
+        return new ResultadoExpresion(tipo, "call " + nombre + ", " + argumentos.size(), codigo);
+    }
+
+    /**
+     * Guarda en un temporal el valor que retorna una llamada usada dentro de
+     * una expresión.
+     *
+     * @param llamada resultado dado por {@link #llamadaFuncion}
+     * @return resultado con el temporal del valor retornado y todo el código
+     */
+    public ResultadoExpresion valorDeLlamada(ResultadoExpresion llamada) {
+        ResultadoExpresion valor = cargarEnTemporal(llamada.getTipo(), llamada.getDireccion());
+        String codigo = llamada.getCodigo() + valor.getCodigo();
+        return new ResultadoExpresion(llamada.getTipo(), valor.getDireccion(), codigo);
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal

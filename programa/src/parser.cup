@@ -334,7 +334,7 @@ atomo ::= literal:valor                                     {: RESULT = valor; :
       | negativo:valor                                      {: RESULT = valor; :}
       | incremento:valor                                    {: RESULT = valor; :}
       | decremento:valor                                    {: RESULT = valor; :}
-      | llamada_fun:valor                                   {: RESULT = valor; :}
+      | llamada_fun:llamada                                 {: RESULT = parser.generador.valorDeLlamada(llamada); :}
       | acceso_arreglo:valor                                {: RESULT = valor; :}
       ;
 
@@ -533,9 +533,12 @@ param_fun ::= PARENTESIS_ABRE params:codigo PARENTESIS_CIERRA {: RESULT = codigo
           ;
 
 llamada_fun ::= identificador:nombre PARENTESIS_ABRE args:argumentos PARENTESIS_CIERRA
-                {: RESULT = parser.semantico.llamadaFuncion(nombre, argumentos, nombreleft, nombreright); :}
+                {: String tipo = parser.semantico.llamadaFuncion(nombre, argumentos, nombreleft, nombreright).getTipo();
+                   RESULT = parser.generador.llamadaFuncion(tipo, nombre, argumentos); :}
             | identificador:nombre PARENTESIS_ABRE PARENTESIS_CIERRA
-                {: RESULT = parser.semantico.llamadaFuncion(nombre, new ArrayList<ResultadoExpresion>(), nombreleft, nombreright); :}
+                {: ArrayList<ResultadoExpresion> sinArgumentos = new ArrayList<>();
+                   String tipo = parser.semantico.llamadaFuncion(nombre, sinArgumentos, nombreleft, nombreright).getTipo();
+                   RESULT = parser.generador.llamadaFuncion(tipo, nombre, sinArgumentos); :}
             ;
 
 args ::= expresion:valor
