@@ -55,6 +55,7 @@ public class TablaSimbolos {
      * @param simbolo símbolo a registrar
      */
     public void agregar(Simbolo simbolo) {
+        simbolo.setAlcance(alcancesAbiertos.peek().getNombre());
         alcancesAbiertos.peek().agregar(simbolo);
     }
 

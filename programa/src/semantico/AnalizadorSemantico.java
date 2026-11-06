@@ -2,6 +2,7 @@ package src.semantico;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import src.tabla.ReporteTokens;
 import src.tabla.Simbolo;
 import src.tabla.SimboloArreglo;
 import src.tabla.SimboloFuncion;
@@ -17,6 +18,7 @@ import src.tabla.TablaSimbolos;
 public class AnalizadorSemantico {
     private TablaSimbolos tabla = new TablaSimbolos();
     private HashMap<String, SimboloFuncion> funcionesDeclaradas = new HashMap<>();
+    private ReporteTokens reporteTokens = new ReporteTokens();
     private boolean huboErrores = false;
     private SimboloFuncion funcionActual;
     private boolean funcionTieneReturn = false;
@@ -49,6 +51,11 @@ public class AnalizadorSemantico {
         huboErrores = true;
         System.err.println("Error semantico en la linea " + (linea + 1)
                 + ", columna " + (columna + 1) + ": " + mensaje);
+    }
+
+    /** Devuelve el reporte donde se registra la tabla de cada identificador. */
+    public ReporteTokens getReporteTokens() {
+        return reporteTokens;
     }
 
     /** Abre un alcance nuevo en la tabla de símbolos. */
@@ -94,6 +101,7 @@ public class AnalizadorSemantico {
             simbolo.setNombreEnCodigo(oculto.getNombreEnCodigo() + "_local");
         }
         tabla.agregar(simbolo);
+        reporteTokens.registrarTabla(simbolo.getLinea() - 1, simbolo.getColumna() - 1, simbolo.getAlcance());
     }
 
     /** Devuelve el nombre que tiene en el código intermedio el símbolo visible. */
@@ -112,6 +120,7 @@ public class AnalizadorSemantico {
         erroresSintacticosAlIniciarFuncion = erroresSintacticos;
         if (!estaDuplicado(nombre, linea, columna)) {
             tabla.agregar(funcionActual);
+            reporteTokens.registrarTabla(linea, columna, funcionActual.getAlcance());
         }
     }
 
@@ -169,7 +178,9 @@ public class AnalizadorSemantico {
         Simbolo simbolo = tabla.buscar(nombre);
         if (simbolo == null) {
             reportarError("el identificador '" + nombre + "' no ha sido declarado", linea, columna);
+            return null;
         }
+        reporteTokens.registrarTabla(linea, columna, simbolo.getAlcance());
         return simbolo;
     }
 
@@ -370,6 +381,7 @@ public class AnalizadorSemantico {
             reportarError("la funcion '" + nombre + "' no ha sido declarada", linea, columna);
             return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
         }
+        reporteTokens.registrarTabla(linea, columna, "global");
         validarArgumentos(funcion, argumentos, linea, columna);
         return new ResultadoExpresion(funcion.getTipo());
     }
