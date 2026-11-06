@@ -3,6 +3,7 @@ package src.codigo;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Stack;
 import src.semantico.ResultadoExpresion;
 
 /**
@@ -12,6 +13,10 @@ import src.semantico.ResultadoExpresion;
 public class GeneradorCodigo {
     private HashMap<String, Integer> contadoresTemporales = new HashMap<>();
     private int contadorEtiquetas = 0;
+    private Stack<Integer> numerosIf = new Stack<>();
+    private Stack<Integer> numerosElif = new Stack<>();
+    private Stack<Integer> numerosCiclo = new Stack<>();
+    private Stack<String> salidasCiclo = new Stack<>();
 
     /**
      * Crea un temporal nuevo para un valor del tipo indicado. Cada tipo tiene
@@ -235,6 +240,144 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Reserva el número de etiquetas de un if que se empieza a leer. Se guarda
+     * en una pila porque puede haber if dentro de otros if.
+     */
+    public void abrirIf() {
+        numerosIf.push(nuevoNumeroEtiqueta());
+    }
+
+    /**
+     * Genera un if completo con el número reservado en {@link #abrirIf()}. Si la
+     * condición es verdadera se ejecuta el cuerpo; si no, las ramas elif y else.
+     *
+     * @param condicion expresión booleana de la condición
+     * @param cuerpo código del bloque del if
+     * @param ramasElif código de las ramas elif (vacío si no hay)
+     * @param cuerpoElse código del bloque else (vacío si no hay)
+     * @return código de toda la estructura
+     */
+    public String sentenciaIf(ResultadoExpresion condicion, String cuerpo, String ramasElif,
+            String cuerpoElse) {
+        int numero = numerosIf.pop();
+        return condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto if_true_" + numero)
+                + instruccion("goto if_false_" + numero)
+                + etiqueta("if_true_" + numero)
+                + cuerpo
+                + instruccion("goto if_end_" + numero)
+                + etiqueta("if_false_" + numero)
+                + ramasElif
+                + cuerpoElse
+                + etiqueta("if_end_" + numero);
+    }
+
+    /**
+     * Reserva el número de etiquetas de un elif que se empieza a leer.
+     */
+    public void abrirElif() {
+        numerosElif.push(nuevoNumeroEtiqueta());
+    }
+
+    /**
+     * Genera una rama elif con el número reservado en {@link #abrirElif()}. Si
+     * la condición es verdadera se ejecuta el cuerpo y se salta al final del if
+     * al que pertenece; si no, se sigue con la rama siguiente.
+     *
+     * @param condicion expresión booleana de la condición
+     * @param cuerpo código del bloque del elif
+     * @return código de la rama
+     */
+    public String ramaElif(ResultadoExpresion condicion, String cuerpo) {
+        int numero = numerosElif.pop();
+        int numeroIf = numerosIf.peek();
+        return condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto elif_true_" + numero)
+                + instruccion("goto elif_false_" + numero)
+                + etiqueta("elif_true_" + numero)
+                + cuerpo
+                + instruccion("goto if_end_" + numeroIf)
+                + etiqueta("elif_false_" + numero);
+    }
+
+    /**
+     * Reserva el número de etiquetas de un while que se empieza a leer.
+     */
+    public void abrirWhile() {
+        int numero = nuevoNumeroEtiqueta();
+        numerosCiclo.push(numero);
+        salidasCiclo.push("while_end_" + numero);
+    }
+
+    /**
+     * Genera un while con el número reservado en {@link #abrirWhile()}: evalúa
+     * la condición al inicio de cada vuelta y sale cuando es falsa.
+     *
+     * @param condicion expresión booleana de la condición
+     * @param cuerpo código del bloque del while
+     * @return código del ciclo
+     */
+    public String sentenciaWhile(ResultadoExpresion condicion, String cuerpo) {
+        int numero = numerosCiclo.pop();
+        salidasCiclo.pop();
+        return etiqueta("while_" + numero)
+                + condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto while_body_" + numero)
+                + instruccion("goto while_end_" + numero)
+                + etiqueta("while_body_" + numero)
+                + cuerpo
+                + instruccion("goto while_" + numero)
+                + etiqueta("while_end_" + numero);
+    }
+
+    /**
+     * Reserva el número de etiquetas de un for que se empieza a leer.
+     */
+    public void abrirFor() {
+        int numero = nuevoNumeroEtiqueta();
+        numerosCiclo.push(numero);
+        salidasCiclo.push("for_end_" + numero);
+    }
+
+    /**
+     * Genera un for con el número reservado en {@link #abrirFor()}: ejecuta el
+     * inicio una vez y luego funciona como un while que ejecuta la
+     * actualización al final de cada vuelta.
+     *
+     * @param encabezado inicio, condición y actualización del for
+     * @param cuerpo código del bloque del for
+     * @return código del ciclo
+     */
+    public String sentenciaFor(EncabezadoFor encabezado, String cuerpo) {
+        int numero = numerosCiclo.pop();
+        salidasCiclo.pop();
+        ResultadoExpresion condicion = encabezado.getCondicion();
+        return encabezado.getInicio()
+                + etiqueta("for_" + numero)
+                + condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto for_body_" + numero)
+                + instruccion("goto for_end_" + numero)
+                + etiqueta("for_body_" + numero)
+                + cuerpo
+                + encabezado.getActualizacion()
+                + instruccion("goto for_" + numero)
+                + etiqueta("for_end_" + numero);
+    }
+
+    /**
+     * Genera un break: un salto a la salida del ciclo más cercano.
+     *
+     * @return código del salto, o vacío si no hay un ciclo abierto (el
+     *     análisis semántico ya reportó ese error)
+     */
+    public String sentenciaBreak() {
+        if (salidasCiclo.isEmpty()) {
+            return "";
+        }
+        return instruccion("goto " + salidasCiclo.peek());
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal
@@ -252,5 +395,15 @@ public class GeneradorCodigo {
      */
     public static String instruccion(String texto) {
         return texto + "\n";
+    }
+
+    /**
+     * Convierte un nombre en una línea de etiqueta, por ejemplo "if_end_1:".
+     *
+     * @param nombre nombre de la etiqueta
+     * @return la etiqueta terminada en salto de línea
+     */
+    public static String etiqueta(String nombre) {
+        return instruccion(nombre + ":");
     }
 }
