@@ -467,6 +467,26 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Genera un write: el código del valor y la instrucción que lo escribe.
+     *
+     * @param valor valor escrito
+     * @return código del write
+     */
+    public String sentenciaWrite(ResultadoExpresion valor) {
+        return valor.getCodigo() + instruccion("write " + valor.getDireccion());
+    }
+
+    /**
+     * Genera un read, que guarda directamente en la variable el valor leído.
+     *
+     * @param nombre nombre de la variable
+     * @return código del read
+     */
+    public String sentenciaRead(String nombre) {
+        return instruccion("read " + nombre);
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal

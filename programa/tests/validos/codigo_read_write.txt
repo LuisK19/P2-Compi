@@ -1,0 +1,18 @@
+void principal є: :э ¿:
+  val int n »
+  val float f »
+  val char c »
+  val bool listo Ͱ true »
+  val int datos ʃ:2:ʅ Ͱ ¿: 4, 5 :? »
+  read є: n :э »
+  read є: f :э »
+  read є: c :э »
+  write є: "hola" :э »
+  write є: 8 :э »
+  write є: 1.5 :э »
+  write є: false :э »
+  write є: -3 :э »
+  write є: n :э »
+  write є: listo :э »
+  write є: datos ʃ: n + 1 :ʅ :э »
+:?

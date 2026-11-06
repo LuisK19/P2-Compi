@@ -120,7 +120,7 @@ non terminal ArrayList<String> valores_arreglo_int, valores_arreglo_float;
 non terminal apertura_if, apertura_elif, apertura_while, apertura_for;
 non terminal String inicio_for, actualizacion_for;
 non terminal EncabezadoFor encabezado_for;
-non terminal param_write;
+non terminal ResultadoExpresion param_write;
 non terminal String op_orden, op_igualdad;
 non terminal String negativo_int, negativo_float;
 non terminal Double literal_float;
@@ -478,23 +478,26 @@ sentencia_break ::= BREAK:palabraBreak FIN_SENT
                        RESULT = parser.generador.sentenciaBreak(); :}
                 ;
 
-sentencia_write ::= WRITE PARENTESIS_ABRE param_write PARENTESIS_CIERRA FIN_SENT {: RESULT = ""; :} ;
+sentencia_write ::= WRITE PARENTESIS_ABRE param_write:valor PARENTESIS_CIERRA FIN_SENT
+                    {: RESULT = parser.generador.sentenciaWrite(valor); :}
+                ;
 
-param_write ::= literal_str
-            | literal_int
-            | literal_bool
-            | literal_float
-            | negativo
+param_write ::= literal_str:valor   {: RESULT = parser.generador.cargarEnTemporal("string", "\"" + valor + "\""); :}
+            | literal_int:valor   {: RESULT = parser.generador.cargarEnTemporal("int", String.valueOf(valor)); :}
+            | literal_bool:valor  {: RESULT = parser.generador.cargarEnTemporal("bool", valor); :}
+            | literal_float:valor {: RESULT = parser.generador.cargarEnTemporal("float", GeneradorCodigo.textoFlotante(valor)); :}
+            | negativo:valor      {: RESULT = valor; :}
             | identificador:nombre
                 {: String tipo = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
-                   parser.semantico.validarTipoWrite(nombre, tipo, nombreleft, nombreright); :}
-            | acceso_arreglo
+                   parser.semantico.validarTipoWrite(nombre, tipo, nombreleft, nombreright);
+                   RESULT = parser.generador.cargarEnTemporal(tipo, nombre); :}
+            | acceso_arreglo:valor {: RESULT = valor; :}
             ;
 
 sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA FIN_SENT
                    {: String tipo = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
                       parser.semantico.validarTipoRead(nombre, tipo, nombreleft, nombreright);
-                      RESULT = ""; :}
+                      RESULT = parser.generador.sentenciaRead(nombre); :}
                ;
 
 funcion ::= encabezado_funcion:nombreFuncion param_fun:parametros cuerpo_funcion:cuerpo
