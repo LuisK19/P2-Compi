@@ -8,6 +8,7 @@ import src.codigo.GeneradorCodigo;
 import src.semantico.AnalizadorSemantico;
 import src.semantico.ResultadoExpresion;
 import src.semantico.ResultadoSentencia;
+import src.tabla.ReporteTokens;
 import src.tabla.SimboloFuncion;
 import src.tabla.TablaSimbolos;
 
@@ -65,6 +66,10 @@ parser code {:
 
     public TablaSimbolos getTablaSimbolos() {
         return semantico.getTablaSimbolos();
+    }
+
+    public ReporteTokens getReporteTokens() {
+        return semantico.getReporteTokens();
     }
 
     public String getCodigoIntermedio() {

@@ -9,6 +9,7 @@ package src.tabla;
 public class Simbolo {
     private String nombre;
     private String nombreEnCodigo;
+    private String alcance;
     private String categoria;
     private String tipo;
     private int linea;
@@ -47,6 +48,14 @@ public class Simbolo {
      */
     public void setNombreEnCodigo(String nombreEnCodigo) {
         this.nombreEnCodigo = nombreEnCodigo;
+    }
+
+    public String getAlcance() {
+        return alcance;
+    }
+
+    public void setAlcance(String alcance) {
+        this.alcance = alcance;
     }
 
     public String getCategoria() {
