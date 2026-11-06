@@ -111,8 +111,8 @@ terminal String CADENA;
 terminal String CARACTER;
 
 /*No terminales*/
-non terminal programa, encabezado_principal;
-non terminal encabezado_funcion, params, parametro, param_fun;
+non terminal programa;
+non terminal String encabezado_funcion, encabezado_principal, params, parametro, param_fun;
 non terminal ArrayList<ResultadoExpresion> args;
 non terminal inicio_bloque;
 non terminal String valor_arreglo_int, valor_arreglo_float;
@@ -497,37 +497,39 @@ sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA F
                       RESULT = ""; :}
                ;
 
-funcion ::= encabezado_funcion param_fun cuerpo_funcion:cuerpo
+funcion ::= encabezado_funcion:nombreFuncion param_fun:parametros cuerpo_funcion:cuerpo
                 {: parser.semantico.validarFuncionConReturn();
                    parser.semantico.cerrarAlcance();
-                   RESULT = cuerpo; :}
-        | encabezado_funcion error cuerpo_funcion:cuerpo
+                   RESULT = parser.generador.funcion(nombreFuncion, parametros, cuerpo); :}
+        | encabezado_funcion:nombreFuncion error cuerpo_funcion:cuerpo
                 {: parser.semantico.validarFuncionConReturn();
                    parser.semantico.cerrarAlcance();
-                   RESULT = cuerpo; :}
+                   RESULT = parser.generador.funcion(nombreFuncion, "", cuerpo); :}
         ;
 
 encabezado_funcion ::= tipo:tipoRetorno identificador:nombre
                        {: parser.semantico.validarTipoRetorno(nombre, tipoRetorno, nombreleft, nombreright);
                           parser.semantico.agregarFuncion(nombre, tipoRetorno, nombreleft, nombreright);
-                          parser.semantico.abrirAlcance(nombre); :}
+                          parser.semantico.abrirAlcance(nombre);
+                          RESULT = parser.generador.nombreFuncion(tipoRetorno, nombre); :}
                    ;
 
 cuerpo_funcion ::= LLAVE_ABRE lista_lineas:codigo LLAVE_CIERRA  {: RESULT = codigo; :}
                | LLAVE_ABRE error LLAVE_CIERRA                {: RESULT = ""; :}
                ;
 
-params ::= parametro
-       | parametro COMA params
+params ::= parametro:codigo                 {: RESULT = codigo; :}
+       | parametro:codigo COMA params:resto {: RESULT = codigo + resto; :}
        ;
 
 parametro ::= tipo:tipoDato identificador:nombre
               {: parser.semantico.agregarSimbolo(nombre, "parametro", tipoDato, nombreleft, nombreright);
-                 parser.semantico.agregarTipoParametro(tipoDato); :}
+                 parser.semantico.agregarTipoParametro(tipoDato);
+                 RESULT = parser.generador.parametro(tipoDato, nombre); :}
           ;
 
-param_fun ::= PARENTESIS_ABRE params PARENTESIS_CIERRA
-          | PARENTESIS_ABRE PARENTESIS_CIERRA
+param_fun ::= PARENTESIS_ABRE params:codigo PARENTESIS_CIERRA {: RESULT = codigo; :}
+          | PARENTESIS_ABRE PARENTESIS_CIERRA            {: RESULT = ""; :}
           ;
 
 llamada_fun ::= identificador:nombre PARENTESIS_ABRE args:argumentos PARENTESIS_CIERRA
@@ -544,14 +546,15 @@ args ::= expresion:valor
                RESULT = resto; :}
      ;
 
-principal ::= encabezado_principal cuerpo_funcion:cuerpo
+principal ::= encabezado_principal:nombreFuncion cuerpo_funcion:cuerpo
                 {: parser.semantico.cerrarAlcance();
-                   RESULT = cuerpo; :}
+                   RESULT = parser.generador.funcion(nombreFuncion, "", cuerpo); :}
           ;
 
 encabezado_principal ::= VOID PRINCIPAL:palabraPrincipal PARENTESIS_ABRE PARENTESIS_CIERRA
                          {: parser.semantico.agregarFuncion("principal", "void", palabraPrincipalleft, palabraPrincipalright);
-                            parser.semantico.abrirAlcance("principal"); :}
+                            parser.semantico.abrirAlcance("principal");
+                            RESULT = parser.generador.nombreFuncion("void", "principal"); :}
                      ;
 
 globales_opc ::= declaracion:codigo globales_opc:resto           {: RESULT = codigo + resto; :}

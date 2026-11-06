@@ -378,6 +378,42 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Forma el nombre con el que una función aparece en el código intermedio.
+     *
+     * @param tipoRetorno tipo que retorna la función
+     * @param nombre nombre de la función
+     * @return nombre con el tipo al inicio, por ejemplo int_suma
+     */
+    public String nombreFuncion(String tipoRetorno, String nombre) {
+        return tipoRetorno + "_" + nombre;
+    }
+
+    /**
+     * Genera la instrucción que registra un parámetro de una función.
+     *
+     * @param tipo tipo del parámetro
+     * @param nombre nombre del parámetro
+     * @return código del parámetro
+     */
+    public String parametro(String tipo, String nombre) {
+        return instruccion("param_" + tipo + " " + nombre);
+    }
+
+    /**
+     * Genera una función completa: su etiqueta de entrada, los parámetros, el
+     * cuerpo y su marca de final.
+     *
+     * @param nombreFuncion nombre dado por {@link #nombreFuncion(String, String)}
+     * @param parametros código de los parámetros (vacío si no tiene)
+     * @param cuerpo código del cuerpo de la función
+     * @return código de la función
+     */
+    public String funcion(String nombreFuncion, String parametros, String cuerpo) {
+        return etiqueta(nombreFuncion) + parametros + cuerpo
+                + instruccion(nombreFuncion + "_end");
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal
