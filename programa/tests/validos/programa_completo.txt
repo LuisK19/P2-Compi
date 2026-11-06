@@ -1,0 +1,144 @@
+| Variables globales de todos los tipos
+val int contador »
+val int limite Ͱ 10 »
+val float escala Ͱ 2.5 »
+val bool activo Ͱ true »
+val char modo Ͱ 'a' »
+val string etiqueta Ͱ "sensor" »
+val int base Ͱ 3 + 4 »
+
+| Arreglos globales: completo, parcial y sin valores
+val int lecturas ʃ:4:ʅ Ͱ ¿: 5, -2, 8, 1 :? »
+val float pesos ʃ:3:ʅ Ͱ ¿: 0.5, -1.5 :? »
+val int banderas ʃ:2:ʅ »
+
+| Precedencia: pot, luego + y -, luego * / //, y por ultimo mod
+int aritmetica є: int a, int b :э ¿:
+    val int c Ͱ a + b * 2 »
+    val int d Ͱ є: a + b :э * 2 »
+    val int e Ͱ a // b mod 3 »
+    val int f Ͱ 2 pot 3 pot 2 »
+    val int g Ͱ a - -5 »
+    return c + d - e * f + g »
+:?
+
+float calcular є: float x, float y :э ¿:
+    val float r Ͱ x * y + 2.5 »
+    r Ͱ r / є: y - 0.5 :э »
+    return r »
+:?
+
+bool comparar є: int a, float b, char c, bool d :э ¿:
+    val bool m1 Ͱ ʃ: a :ʅ < ʃ: 5 :ʅ »
+    val bool m2 Ͱ ʃ: a :ʅ <= ʃ: 5 :ʅ »
+    val bool m3 Ͱ ʃ: b :ʅ > ʃ: 1.5 :ʅ »
+    val bool m4 Ͱ ʃ: b :ʅ >= ʃ: 1.5 :ʅ »
+    val bool m5 Ͱ ʃ: c :ʅ == ʃ: 'z' :ʅ »
+    val bool m6 Ͱ ʃ: d :ʅ != ʃ: false :ʅ »
+    val bool m7 Ͱ ʃ: ʃ: a :ʅ > ʃ: 0 :ʅ :ʅ == ʃ: true :ʅ »
+    val bool m8 Ͱ є: m1 :э λ є: m2 :э »
+    val bool m9 Ͱ є: m3 :э θ є: Σ є: m4 :э :э »
+    return є: є: m5 :э λ є: m6 :э :э θ є: є: m7 :э λ є: m8 :э :э »
+:?
+
+char letra є: :э ¿:
+    return 'b' »
+:?
+
+void principal є: :э ¿:
+    val int i Ͱ 0 »
+    val int suma »
+    val float promedio Ͱ 0.0 »
+    val char opcion »
+    val string texto Ͱ "listo" »
+    val bool salir Ͱ false »
+    val int datos ʃ:3:ʅ Ͱ ¿: 1, 2, 3 :? »
+
+    read є: suma :э »
+    read є: promedio :э »
+    read є: opcion :э »
+
+    write є: "inicio" :э »
+    write є: 25 :э »
+    write є: -7 :э »
+    write є: 1.5 :э »
+    write є: true :э »
+    write є: texto :э »
+    write є: limite :э »
+    write є: lecturas ʃ: i + 1 :ʅ :э »
+
+    | Elementos de arreglo en expresiones y asignaciones
+    datos ʃ: 0 :ʅ Ͱ lecturas ʃ: 2 :ʅ + datos ʃ: 1 :ʅ »
+    pesos ʃ: 2 :ʅ Ͱ pesos ʃ: 0 :ʅ * escala »
+
+    | Incrementos como sentencia y dentro de una expresion
+    contador++ »
+    contador-- »
+    promedio++ »
+    suma Ͱ i++ + 1 »
+
+    | if, elif y else
+    if є: ʃ: suma :ʅ > ʃ: limite :ʅ :э ¿:
+        write є: "alto" :э »
+    :? elif є: ʃ: suma :ʅ == ʃ: limite :ʅ :э ¿:
+        write є: "igual" :э »
+    :? elif є: є: activo :э λ є: ʃ: modo :ʅ == ʃ: 'a' :ʅ :э :э ¿:
+        write є: "activo" :э »
+    :? else ¿:
+        write є: "bajo" :э »
+    :?
+
+    | while con break, y for con declaracion y con asignacion
+    while є: ʃ: i :ʅ < ʃ: limite :ʅ :э ¿:
+        if є: ʃ: i mod 2 :ʅ == ʃ: 0 :ʅ :э ¿:
+            i Ͱ i + 3 »
+        :? else ¿:
+            break »
+        :?
+    :?
+
+    for є: val int j Ͱ 0 » ʃ: j :ʅ < ʃ: 4 :ʅ » j++ :э ¿:
+        banderas ʃ: j mod 2 :ʅ Ͱ lecturas ʃ: j :ʅ »
+        for є: i Ͱ 0 » ʃ: i :ʅ < ʃ: j :ʅ » i Ͱ i + 2 :э ¿:
+            if є: ʃ: i :ʅ == ʃ: 3 :ʅ :э ¿:
+                break »
+            :?
+            write є: i :э »
+        :?
+    :?
+
+    | Llamadas como expresion, como argumento y como sentencia
+    suma Ͱ aritmetica є: suma, 2 :э + mayor є: aritmetica є: 1, 2 :э, limite + 1 :э »
+    promedio Ͱ calcular є: promedio, 1.5 :э »
+    salir Ͱ comparar є: suma, promedio, letra є: :э, activo :э »
+    opcion Ͱ letra є: :э »
+    registrar є: suma, "fin" :э »
+
+    | Bloques anidados y ocultamiento de nombres
+    ¿:
+        val int limite Ͱ 1 »
+        ¿:
+            val int limite Ͱ 2 »
+            write є: limite :э »
+        :?
+        write є: limite :э »
+    :?
+    write є: limite :э »
+:?
+
+| Una global despues de principal, y funciones llamadas antes de declararse
+val int ultimo Ͱ limite + 1 »
+
+int mayor є: int a, int b :э ¿:
+    if є: ʃ: a :ʅ > ʃ: b :ʅ :э ¿:
+        return a »
+    :? else ¿:
+        return b »
+    :?
+:?
+
+int registrar є: int valor, string nota :э ¿:
+    write є: nota :э »
+    ultimo Ͱ valor »
+    return ultimo »
+:?

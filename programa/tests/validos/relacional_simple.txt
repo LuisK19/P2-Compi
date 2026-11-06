@@ -1,7 +1,0 @@
-void principal є: :э ¿:
-  val int a Ͱ 1 »
-  val int b Ͱ 2 »
-  val bool r1 Ͱ ʃ: a :ʅ < ʃ: b :ʅ »
-  val bool r2 Ͱ ʃ: a + 1 :ʅ >= ʃ: b * 2 :ʅ »
-  val bool r3 Ͱ ʃ: a :ʅ == ʃ: b :ʅ »
-:?

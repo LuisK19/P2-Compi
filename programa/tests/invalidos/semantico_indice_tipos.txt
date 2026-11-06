@@ -1,7 +1,0 @@
-void principal є: :э ¿:
-  val int datos ʃ:3:ʅ Ͱ ¿: 1, 2, 3 :? »
-  val char c Ͱ 'a' »
-  val int x Ͱ datosʃ:1.5:ʅ »
-  datosʃ:c:ʅ Ͱ 4 »
-  datosʃ:true:ʅ Ͱ 5 »
-:?

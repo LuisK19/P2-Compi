@@ -4,7 +4,7 @@ import java_cup.runtime.*;
 
 %%
 
-/* Configuración del lexer generado y metadatos de posición para CUP. */
+/* Configuración del lexer: clase generada, compatibilidad con CUP y posición de los tokens */
 %class Lexer
 %unicode
 %cup
@@ -16,20 +16,22 @@ import java_cup.runtime.*;
     private boolean huboErroresLexicos = false;
     private StringBuilder erroresLexicos = new StringBuilder();
 
-    // Construye símbolos CUP con la ubicación actual, conservada en base cero.
+    /** Construye un símbolo de CUP con la línea y columna actuales, desde 0. */
     private Symbol symbol(int type, Object value) {
         return new Symbol(type, yyline, yycolumn, value);
     }
 
+    /** Indica si se reportó algún error léxico. */
     public boolean huboErroresLexicos() {
         return huboErroresLexicos;
     }
 
+    /** Devuelve el texto de los errores léxicos encontrados. */
     public String obtenerErroresLexicos() {
         return erroresLexicos.toString();
     }
 
-    // Registra un error lexico con su posicion.
+    /** Registra un error léxico con su línea y columna. */
     private void reportarError(String descripcion) {
         huboErroresLexicos = true;
         erroresLexicos.append("Error lexico en linea " + (yyline + 1)
@@ -38,7 +40,7 @@ import java_cup.runtime.*;
     }
 %}
 
-/* Macros */
+/* Expresiones regulares de los tokens */
 DIG             = [0-9]
 DIGN            = [1-9]
 CERO            = "0"
@@ -64,9 +66,9 @@ COMENTARIO_SIN_CERRAR = "¡"[^!]*
 
 %%
 
-/* Sección 3: Reglas léxicas */
+/* Reglas léxicas */
 
-/* Espacios en blanco */
+/* Espacios en blanco y comentarios */
 {ESPACIOS}                         { /* ignorar */ }
 {COMENTARIO_LINEA}                 { /* ignorar */ }
 {COMENTARIO_MULTILINEA}            { /* ignorar */ }
@@ -111,12 +113,12 @@ COMENTARIO_SIN_CERRAR = "¡"[^!]*
 "<"             { return symbol(sym.OP_MENOR, yytext()); }
 ">"             { return symbol(sym.OP_MAYOR, yytext()); }
 
-/* Operadores logicos */
+/* Operadores lógicos */
 "λ"             { return symbol(sym.OP_AND, yytext()); }
 "θ"             { return symbol(sym.OP_OR, yytext()); }
 "Σ"             { return symbol(sym.OP_NOT, yytext()); }
 
-/* Simbolos especiales */
+/* Símbolos especiales */
 "¿:"            { return symbol(sym.LLAVE_ABRE, yytext());}  
 ":?"            { return symbol(sym.LLAVE_CIERRA, yytext());}
 "ʃ:"            { return symbol(sym.CORCHETE_ABRE, yytext());}
@@ -138,7 +140,7 @@ COMENTARIO_SIN_CERRAR = "¡"[^!]*
 
 {ID}        { return symbol(sym.ID, yytext()); }
 
-/* Error lexico */
+/* Errores léxicos */
 
 
 {ID_INVALIDO}           { reportarError("identificador no puede comenzar con un digito '" + yytext() + "'"); }

@@ -21,10 +21,12 @@ public class ResultadoSentencia {
         this.cortaFlujo = cortaFlujo;
     }
 
+    /** Devuelve el código intermedio de la línea. */
     public String getCodigo() {
         return codigo;
     }
 
+    /** Indica si la ejecución no puede seguir después de la línea. */
     public boolean cortaFlujo() {
         return cortaFlujo;
     }

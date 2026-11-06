@@ -1,6 +1,0 @@
-void principal є: :э ¿:
-  val bool banderas ʃ:2:ʅ »
-  val string nombres ʃ:3:ʅ »
-  val int enteros ʃ:2:ʅ Ͱ ¿: 1.5, 2.5 :? »
-  val float reales ʃ:2:ʅ Ͱ ¿: 1, 2 :? »
-:?

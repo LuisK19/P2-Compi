@@ -21,6 +21,11 @@ public class Alcance {
         this.padre = padre;
     }
 
+    /**
+     * Agrega un símbolo a este alcance.
+     *
+     * @param simbolo símbolo por agregar
+     */
     public void agregar(Simbolo simbolo) {
         simbolos.add(simbolo);
     }
@@ -40,14 +45,17 @@ public class Alcance {
         return null;
     }
 
+    /** Devuelve el nombre descriptivo del alcance. */
     public String getNombre() {
         return nombre;
     }
 
+    /** Devuelve el alcance que contiene a este, o {@code null} si es el global. */
     public Alcance getPadre() {
         return padre;
     }
 
+    /** Devuelve los símbolos declarados en este alcance. */
     public ArrayList<Simbolo> getSimbolos() {
         return simbolos;
     }

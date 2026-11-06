@@ -26,7 +26,11 @@ public class AnalizadorSemantico {
     private int erroresSintacticosAlIniciarFuncion = 0;
     private int ciclosAbiertos = 0;
 
-    /** Guarda las firmas de funciones obtenidas antes del análisis. */
+    /**
+     * Guarda las firmas de funciones obtenidas antes del análisis.
+     *
+     * @param funcionesDeclaradas funciones del archivo, por nombre
+     */
     public void setFuncionesDeclaradas(HashMap<String, SimboloFuncion> funcionesDeclaradas) {
         this.funcionesDeclaradas = funcionesDeclaradas;
     }
@@ -46,14 +50,25 @@ public class AnalizadorSemantico {
         erroresSintacticos++;
     }
 
-    /** Imprime un error semántico con su posición. */
+    /**
+     * Imprime un error semántico con su posición.
+     *
+     * @param mensaje descripción del error
+     * @param linea línea del error
+     * @param columna columna del error
+     */
     public void reportarError(String mensaje, int linea, int columna) {
         huboErrores = true;
         System.err.println("Error semantico en la linea " + (linea + 1)
                 + ", columna " + (columna + 1) + ": " + mensaje);
     }
 
-    /** Imprime un error semántico que solo se puede ubicar por su línea. */
+    /**
+     * Imprime un error semántico que solo se puede ubicar por su línea.
+     *
+     * @param mensaje descripción del error
+     * @param linea línea del error
+     */
     private void reportarErrorDeLinea(String mensaje, int linea) {
         huboErrores = true;
         System.err.println("Error semantico en la linea " + (linea + 1) + ": " + mensaje);
@@ -64,7 +79,11 @@ public class AnalizadorSemantico {
         return reporteTokens;
     }
 
-    /** Abre un alcance nuevo en la tabla de símbolos. */
+    /**
+     * Abre un alcance nuevo en la tabla de símbolos.
+     *
+     * @param nombre nombre descriptivo del alcance
+     */
     public void abrirAlcance(String nombre) {
         tabla.abrirAlcance(nombre);
     }
@@ -86,21 +105,42 @@ public class AnalizadorSemantico {
 
     // Declaraciones
 
-    /** Agrega una variable o parámetro, si no está repetido en el alcance actual. */
+    /**
+     * Agrega una variable o parámetro, si no está repetido en el alcance actual.
+     *
+     * @param nombre nombre del identificador
+     * @param categoria variable o parametro
+     * @param tipo tipo de dato declarado
+     * @param linea línea de la declaración
+     * @param columna columna de la declaración
+     */
     public void agregarSimbolo(String nombre, String categoria, String tipo, int linea, int columna) {
         if (!estaDuplicado(nombre, linea, columna)) {
             agregarVariable(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
         }
     }
 
-    /** Agrega un arreglo, si no está repetido en el alcance actual. */
+    /**
+     * Agrega un arreglo, si no está repetido en el alcance actual.
+     *
+     * @param nombre nombre del arreglo
+     * @param tipo tipo de los elementos
+     * @param tamano cantidad de elementos
+     * @param linea línea de la declaración
+     * @param columna columna de la declaración
+     */
     public void agregarArreglo(String nombre, String tipo, int tamano, int linea, int columna) {
         if (!estaDuplicado(nombre, linea, columna)) {
             agregarVariable(new SimboloArreglo(nombre, tipo, tamano, linea + 1, columna + 1));
         }
     }
 
-    /** Agrega un símbolo con su nombre en el código: _global o, si oculta a otra local, _local. */
+    /**
+     * Agrega un símbolo y define su nombre en el código intermedio: las
+     * globales llevan _global y una local que oculta a otra local lleva _local.
+     *
+     * @param simbolo símbolo por agregar
+     */
     private void agregarVariable(Simbolo simbolo) {
         Simbolo oculto = tabla.buscar(simbolo.getNombre());
         if (tabla.estaEnAlcanceGlobal()) {
@@ -112,7 +152,12 @@ public class AnalizadorSemantico {
         reporteTokens.registrarTabla(simbolo.getLinea() - 1, simbolo.getColumna() - 1, simbolo.getAlcance());
     }
 
-    /** Devuelve el nombre que tiene en el código intermedio el símbolo visible. */
+    /**
+     * Devuelve el nombre que tiene en el código intermedio el símbolo visible.
+     *
+     * @param nombre nombre del identificador en el código fuente
+     * @return nombre en el código intermedio, o el mismo nombre si no está declarado
+     */
     public String nombreEnCodigo(String nombre) {
         Simbolo simbolo = tabla.buscar(nombre);
         if (simbolo == null) {
@@ -121,7 +166,14 @@ public class AnalizadorSemantico {
         return simbolo.getNombreEnCodigo();
     }
 
-    /** Agrega una función y la marca como la función que se está analizando. */
+    /**
+     * Agrega una función y la marca como la función que se está analizando.
+     *
+     * @param nombre nombre de la función
+     * @param tipoRetorno tipo que retorna la función
+     * @param linea línea de la declaración
+     * @param columna columna de la declaración
+     */
     public void agregarFuncion(String nombre, String tipoRetorno, int linea, int columna) {
         funcionActual = new SimboloFuncion(nombre, tipoRetorno, linea + 1, columna + 1);
         funcionTieneReturn = false;
@@ -132,11 +184,23 @@ public class AnalizadorSemantico {
         }
     }
 
-    /** Agrega el tipo de un parámetro a la función que se está analizando. */
+    /**
+     * Agrega el tipo de un parámetro a la función que se está analizando.
+     *
+     * @param tipo tipo del parámetro
+     */
     public void agregarTipoParametro(String tipo) {
         funcionActual.agregarTipoParametro(tipo);
     }
 
+    /**
+     * Revisa si un nombre ya existe en el alcance actual y reporta el error.
+     *
+     * @param nombre nombre del identificador
+     * @param linea línea de la declaración
+     * @param columna columna de la declaración
+     * @return {@code true} si el nombre ya estaba declarado
+     */
     private boolean estaDuplicado(String nombre, int linea, int columna) {
         if (tabla.buscarEnAlcanceActual(nombre) == null) {
             return false;
@@ -145,7 +209,15 @@ public class AnalizadorSemantico {
         return true;
     }
 
-    /** Valida el tipo y el tamaño de un arreglo. */
+    /**
+     * Valida que un arreglo sea int o float y que su tamaño sea mayor que 0.
+     *
+     * @param nombre nombre del arreglo
+     * @param tipo tipo de los elementos
+     * @param tamano cantidad de elementos
+     * @param linea línea de la declaración
+     * @param columna columna de la declaración
+     */
     public void validarArreglo(String nombre, String tipo, int tamano, int linea, int columna) {
         if (!esTipoDeArreglo(tipo)) {
             reportarError("el arreglo '" + nombre + "' solo puede ser de tipo int o float", linea, columna);
@@ -155,7 +227,18 @@ public class AnalizadorSemantico {
         }
     }
 
-    /** Valida que los valores iniciales de un arreglo sean de su tipo y no excedan su tamaño. */
+    /**
+     * Valida que los valores iniciales de un arreglo sean de su tipo y no
+     * excedan su tamaño.
+     *
+     * @param nombre nombre del arreglo
+     * @param tipo tipo de los elementos
+     * @param tamano cantidad de elementos
+     * @param tipoValores tipo de los valores iniciales
+     * @param cantidad cantidad de valores iniciales
+     * @param linea línea de la declaración
+     * @param columna columna de la declaración
+     */
     public void validarValoresArreglo(String nombre, String tipo, int tamano, String tipoValores, int cantidad,
             int linea, int columna) {
         if (esTipoDeArreglo(tipo) && !tipo.equals(tipoValores)) {
@@ -168,11 +251,24 @@ public class AnalizadorSemantico {
         }
     }
 
+    /**
+     * Indica si un tipo se puede usar en un arreglo.
+     *
+     * @param tipo tipo por revisar
+     * @return {@code true} si es int o float
+     */
     private boolean esTipoDeArreglo(String tipo) {
         return tipo.equals("int") || tipo.equals("float");
     }
 
-    /** Valida que una función retorne int, float, char o bool. */
+    /**
+     * Valida que una función retorne int, float, char o bool.
+     *
+     * @param nombre nombre de la función
+     * @param tipo tipo de retorno declarado
+     * @param linea línea de la declaración
+     * @param columna columna de la declaración
+     */
     public void validarTipoRetorno(String nombre, String tipo, int linea, int columna) {
         if (!tipo.equals("int") && !tipo.equals("float") && !tipo.equals("char") && !tipo.equals("bool")) {
             reportarError("la funcion '" + nombre + "' no puede retornar " + tipo
@@ -182,6 +278,14 @@ public class AnalizadorSemantico {
 
     // Uso de identificadores
 
+    /**
+     * Busca un identificador visible y registra su tabla en el reporte de tokens.
+     *
+     * @param nombre nombre del identificador
+     * @param linea línea donde se usa
+     * @param columna columna donde se usa
+     * @return el símbolo encontrado, o {@code null} si no está declarado
+     */
     private Simbolo buscarDeclarado(String nombre, int linea, int columna) {
         Simbolo simbolo = tabla.buscar(nombre);
         if (simbolo == null) {
@@ -192,7 +296,14 @@ public class AnalizadorSemantico {
         return simbolo;
     }
 
-    /** Devuelve el tipo de una variable o parámetro usado sin índice, o error. */
+    /**
+     * Devuelve el tipo de una variable o parámetro usado sin índice.
+     *
+     * @param nombre nombre del identificador
+     * @param linea línea donde se usa
+     * @param columna columna donde se usa
+     * @return tipo del símbolo, o {@link ResultadoExpresion#TIPO_ERROR} si no se puede usar así
+     */
     public String tipoDeVariable(String nombre, int linea, int columna) {
         Simbolo simbolo = buscarDeclarado(nombre, linea, columna);
         if (simbolo == null) {
@@ -209,7 +320,14 @@ public class AnalizadorSemantico {
         return simbolo.getTipo();
     }
 
-    /** Devuelve el tipo de los elementos de un arreglo usado con índice, o error. */
+    /**
+     * Devuelve el tipo de los elementos de un arreglo usado con índice.
+     *
+     * @param nombre nombre del identificador
+     * @param linea línea donde se usa
+     * @param columna columna donde se usa
+     * @return tipo de los elementos, o {@link ResultadoExpresion#TIPO_ERROR} si no es un arreglo
+     */
     public String tipoDeArreglo(String nombre, int linea, int columna) {
         Simbolo simbolo = buscarDeclarado(nombre, linea, columna);
         if (simbolo == null) {
@@ -224,6 +342,14 @@ public class AnalizadorSemantico {
 
     // Operaciones
 
+    /**
+     * Indica si un operador aritmético acepta un tipo: / solo float; //, mod y
+     * pot solo int; los demás int o float.
+     *
+     * @param operador símbolo del operador
+     * @param tipo tipo de los operandos
+     * @return {@code true} si el operador acepta el tipo
+     */
     private boolean aceptaTipoAritmetico(String operador, String tipo) {
         if (operador.equals("/")) {
             return tipo.equals("float");
@@ -234,6 +360,14 @@ public class AnalizadorSemantico {
         return tipo.equals("int") || tipo.equals("float");
     }
 
+    /**
+     * Indica si un operador relacional acepta un tipo: == y != aceptan también
+     * bool y char; los demás solo int o float.
+     *
+     * @param operador símbolo del operador
+     * @param tipo tipo de los operandos
+     * @return {@code true} si el operador acepta el tipo
+     */
     private boolean aceptaTipoRelacional(String operador, String tipo) {
         if (operador.equals("==") || operador.equals("!=")) {
             return tipo.equals("int") || tipo.equals("float") || tipo.equals("bool") || tipo.equals("char");
@@ -241,6 +375,16 @@ public class AnalizadorSemantico {
         return tipo.equals("int") || tipo.equals("float");
     }
 
+    /**
+     * Reporta que un operador no acepta los tipos de sus operandos.
+     *
+     * @param operador símbolo del operador
+     * @param izquierdo operando izquierdo
+     * @param derecho operando derecho
+     * @param linea línea del operador
+     * @param columna columna del operador
+     * @return resultado con tipo de error
+     */
     private ResultadoExpresion errorDeOperandos(String operador, ResultadoExpresion izquierdo,
             ResultadoExpresion derecho, int linea, int columna) {
         reportarError("el operador '" + operador + "' no acepta operandos de tipo "
@@ -248,7 +392,17 @@ public class AnalizadorSemantico {
         return new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR);
     }
 
-    /** Valida una operación aritmética binaria y devuelve su tipo. */
+    /**
+     * Valida una operación aritmética binaria. Los dos operandos deben ser del
+     * mismo tipo.
+     *
+     * @param operador símbolo del operador
+     * @param izquierdo operando izquierdo
+     * @param derecho operando derecho
+     * @param linea línea del operador
+     * @param columna columna del operador
+     * @return resultado con el tipo de la operación, o con tipo de error
+     */
     public ResultadoExpresion operacionAritmetica(String operador, ResultadoExpresion izquierdo,
             ResultadoExpresion derecho, int linea, int columna) {
         if (izquierdo.esError() || derecho.esError()) {
@@ -261,7 +415,16 @@ public class AnalizadorSemantico {
         return new ResultadoExpresion(tipo);
     }
 
-    /** Valida una potencia: ambos int y exponente que no sea un literal negativo. */
+    /**
+     * Valida una potencia: ambos operandos int y exponente que no sea un literal
+     * negativo.
+     *
+     * @param base base de la potencia
+     * @param exponente exponente de la potencia
+     * @param linea línea del operador
+     * @param columna columna del operador
+     * @return resultado con el tipo de la operación, o con tipo de error
+     */
     public ResultadoExpresion operacionPotencia(ResultadoExpresion base, ResultadoExpresion exponente,
             int linea, int columna) {
         ResultadoExpresion resultado = operacionAritmetica("pot", base, exponente, linea, columna);
@@ -272,7 +435,16 @@ public class AnalizadorSemantico {
         return resultado;
     }
 
-    /** Valida una operación relacional; el resultado es bool. */
+    /**
+     * Valida una operación relacional. Los dos operandos deben ser del mismo tipo.
+     *
+     * @param operador símbolo del operador
+     * @param izquierdo operando izquierdo
+     * @param derecho operando derecho
+     * @param linea línea del operador
+     * @param columna columna del operador
+     * @return resultado de tipo bool, o con tipo de error
+     */
     public ResultadoExpresion operacionRelacional(String operador, ResultadoExpresion izquierdo,
             ResultadoExpresion derecho, int linea, int columna) {
         if (izquierdo.esError() || derecho.esError()) {
@@ -285,7 +457,16 @@ public class AnalizadorSemantico {
         return new ResultadoExpresion("bool");
     }
 
-    /** Valida una conjunción o disyunción; el resultado es bool. */
+    /**
+     * Valida una conjunción o disyunción. Los dos operandos deben ser bool.
+     *
+     * @param operador símbolo del operador
+     * @param izquierdo operando izquierdo
+     * @param derecho operando derecho
+     * @param linea línea del operador
+     * @param columna columna del operador
+     * @return resultado de tipo bool, o con tipo de error
+     */
     public ResultadoExpresion operacionLogica(String operador, ResultadoExpresion izquierdo,
             ResultadoExpresion derecho, int linea, int columna) {
         if (izquierdo.esError() || derecho.esError()) {
@@ -297,7 +478,14 @@ public class AnalizadorSemantico {
         return new ResultadoExpresion("bool");
     }
 
-    /** Valida una negación lógica; el resultado es bool. */
+    /**
+     * Valida una negación lógica. El operando debe ser bool.
+     *
+     * @param operando operando de la negación
+     * @param linea línea del operador
+     * @param columna columna del operador
+     * @return resultado de tipo bool, o con tipo de error
+     */
     public ResultadoExpresion negacionLogica(ResultadoExpresion operando, int linea, int columna) {
         if (operando.esError()) {
             return operando;
@@ -309,7 +497,15 @@ public class AnalizadorSemantico {
         return new ResultadoExpresion("bool");
     }
 
-    /** Valida ++ o -- sobre una variable int o float. */
+    /**
+     * Valida ++ o -- sobre una variable int o float.
+     *
+     * @param operador ++ o --
+     * @param nombre nombre de la variable
+     * @param linea línea de la variable
+     * @param columna columna de la variable
+     * @return resultado con el tipo de la variable, o con tipo de error
+     */
     public ResultadoExpresion operacionIncremento(String operador, String nombre, int linea, int columna) {
         String tipo = tipoDeVariable(nombre, linea, columna);
         if (tipo.equals(ResultadoExpresion.TIPO_ERROR)) {
@@ -325,7 +521,15 @@ public class AnalizadorSemantico {
 
     // Sentencias
 
-    /** Valida que el valor asignado sea del tipo de la variable. */
+    /**
+     * Valida que el valor asignado sea del tipo de la variable.
+     *
+     * @param nombre nombre de la variable
+     * @param tipoDestino tipo de la variable
+     * @param valor expresión asignada
+     * @param linea línea de la asignación
+     * @param columna columna de la asignación
+     */
     public void validarAsignacion(String nombre, String tipoDestino, ResultadoExpresion valor,
             int linea, int columna) {
         if (tipoDestino.equals(ResultadoExpresion.TIPO_ERROR) || valor.esError()) {
@@ -337,28 +541,52 @@ public class AnalizadorSemantico {
         }
     }
 
-    /** Valida que el índice de un arreglo sea int. */
+    /**
+     * Valida que el índice de un arreglo sea int.
+     *
+     * @param indice expresión del índice
+     * @param linea línea del índice
+     * @param columna columna del índice
+     */
     public void validarIndice(ResultadoExpresion indice, int linea, int columna) {
         if (!indice.esError() && !indice.getTipo().equals("int")) {
             reportarError("el indice de un arreglo debe ser de tipo int, no " + indice.getTipo(), linea, columna);
         }
     }
 
-    /** Valida que la condición de if, elif, while o for sea bool. */
+    /**
+     * Valida que la condición de if, elif, while o for sea bool.
+     *
+     * @param condicion expresión de la condición
+     * @param linea línea de la condición
+     * @param columna columna de la condición
+     */
     public void validarCondicion(ResultadoExpresion condicion, int linea, int columna) {
         if (!condicion.esError() && !condicion.getTipo().equals("bool")) {
             reportarError("la condicion debe ser de tipo bool, no " + condicion.getTipo(), linea, columna);
         }
     }
 
-    /** Valida que break esté dentro de un ciclo. */
+    /**
+     * Valida que break esté dentro de un ciclo.
+     *
+     * @param linea línea del break
+     * @param columna columna del break
+     */
     public void validarBreak(int linea, int columna) {
         if (ciclosAbiertos == 0) {
             reportarError("break solo se puede usar dentro de un while o un for", linea, columna);
         }
     }
 
-    /** Valida que read lea una variable int, float o char. */
+    /**
+     * Valida que read lea una variable int, float o char.
+     *
+     * @param nombre nombre de la variable
+     * @param tipo tipo de la variable
+     * @param linea línea de la variable
+     * @param columna columna de la variable
+     */
     public void validarTipoRead(String nombre, String tipo, int linea, int columna) {
         if (tipo.equals("string") || tipo.equals("bool")) {
             reportarError("read solo puede leer variables int, float o char y '" + nombre
@@ -366,7 +594,14 @@ public class AnalizadorSemantico {
         }
     }
 
-    /** Valida que write no escriba una variable char. */
+    /**
+     * Valida que write no escriba una variable char.
+     *
+     * @param nombre nombre de la variable
+     * @param tipo tipo de la variable
+     * @param linea línea de la variable
+     * @param columna columna de la variable
+     */
     public void validarTipoWrite(String nombre, String tipo, int linea, int columna) {
         if (tipo.equals("char")) {
             reportarError("write solo puede escribir string, int, bool o float y '" + nombre
@@ -376,7 +611,15 @@ public class AnalizadorSemantico {
 
     // Funciones
 
-    /** Valida una llamada a función y devuelve el tipo de retorno de la función. */
+    /**
+     * Valida una llamada a función y sus argumentos.
+     *
+     * @param nombre nombre de la función
+     * @param argumentos argumentos en el orden de la llamada
+     * @param linea línea de la llamada
+     * @param columna columna de la llamada
+     * @return resultado con el tipo de retorno, o con tipo de error
+     */
     public ResultadoExpresion llamadaFuncion(String nombre, ArrayList<ResultadoExpresion> argumentos,
             int linea, int columna) {
         Simbolo simbolo = tabla.buscar(nombre);
@@ -394,6 +637,14 @@ public class AnalizadorSemantico {
         return new ResultadoExpresion(funcion.getTipo());
     }
 
+    /**
+     * Valida la cantidad, el orden y el tipo de los argumentos de una llamada.
+     *
+     * @param funcion función llamada
+     * @param argumentos argumentos en el orden de la llamada
+     * @param linea línea de la llamada
+     * @param columna columna de la llamada
+     */
     private void validarArgumentos(SimboloFuncion funcion, ArrayList<ResultadoExpresion> argumentos,
             int linea, int columna) {
         ArrayList<String> tiposParametros = funcion.getTiposParametros();
@@ -412,7 +663,14 @@ public class AnalizadorSemantico {
         }
     }
 
-    /** Valida que el valor de return sea del tipo de la función actual. */
+    /**
+     * Valida que el valor de return sea del tipo de la función actual. Una
+     * función void no puede tener return.
+     *
+     * @param valor expresión retornada
+     * @param linea línea del return
+     * @param columna columna del return
+     */
     public void validarReturn(ResultadoExpresion valor, int linea, int columna) {
         funcionTieneReturn = true;
         String tipoFuncion = funcionActual.getTipo();
@@ -427,7 +685,12 @@ public class AnalizadorSemantico {
         }
     }
 
-    /** Reporta como inaccesible la línea que sigue a otra que corta el flujo. */
+    /**
+     * Reporta como inaccesible la línea que sigue a otra que corta el flujo.
+     *
+     * @param linea línea anterior del bloque
+     * @param lineaSiguiente número de la línea que le sigue
+     */
     public void validarLineaAlcanzable(ResultadoSentencia linea, int lineaSiguiente) {
         if (linea.cortaFlujo()) {
             reportarErrorDeLinea("codigo inaccesible, la ejecucion nunca llega a esta linea", lineaSiguiente);

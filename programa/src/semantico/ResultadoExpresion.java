@@ -36,26 +36,32 @@ public class ResultadoExpresion {
         this.codigo = codigo;
     }
 
+    /** Devuelve el tipo de la expresión. */
     public String getTipo() {
         return tipo;
     }
 
+    /** Devuelve el temporal o nombre donde queda el valor. */
     public String getDireccion() {
         return direccion;
     }
 
+    /** Devuelve el código intermedio que calcula la expresión. */
     public String getCodigo() {
         return codigo;
     }
 
+    /** Indica si la expresión tiene un error de tipo. */
     public boolean esError() {
         return tipo.equals(TIPO_ERROR);
     }
 
+    /** Indica si la expresión es un literal negativo. */
     public boolean esLiteralNegativo() {
         return literalNegativo;
     }
 
+    /** Marca la expresión como un literal negativo. */
     public void marcarLiteralNegativo() {
         literalNegativo = true;
     }

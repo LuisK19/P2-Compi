@@ -2,9 +2,6 @@ package src.semantico;
 
 import generated.Lexer;
 import generated.sym;
-import java_cup.runtime.Symbol;
-import src.tabla.SimboloFuncion;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java_cup.runtime.Symbol;
+import src.tabla.SimboloFuncion;
 
 /**
  * Recorre los tokens de un archivo fuente antes del análisis sintáctico para
@@ -52,6 +51,13 @@ public class RecolectorFunciones {
         return funciones;
     }
 
+    /**
+     * Lee todos los tokens del archivo.
+     *
+     * @param rutaEntrada ruta del archivo fuente
+     * @return tokens reconocidos
+     * @throws IOException si no se puede leer el archivo
+     */
     private static ArrayList<Symbol> leerTokens(String rutaEntrada) throws IOException {
         ArrayList<Symbol> tokens = new ArrayList<>();
         try (BufferedReader lector = Files.newBufferedReader(Path.of(rutaEntrada), StandardCharsets.UTF_8)) {
@@ -65,7 +71,15 @@ public class RecolectorFunciones {
         return tokens;
     }
 
-    // Un encabezado tiene la forma: tipo nombre є: ... (las variables globales empiezan con val).
+    /**
+     * Indica si en una posición empieza un encabezado de función, que tiene la
+     * forma: tipo nombre є:. Las variables globales se descartan porque empiezan
+     * con val.
+     *
+     * @param tokens tokens del archivo
+     * @param posicion posición por revisar
+     * @return {@code true} si la posición inicia un encabezado
+     */
     private static boolean esEncabezadoFuncion(ArrayList<Symbol> tokens, int posicion) {
         if (posicion + 2 >= tokens.size() || nombreDeTipo(tokens.get(posicion).sym) == null) {
             return false;
@@ -77,6 +91,13 @@ public class RecolectorFunciones {
                 && tokens.get(posicion + 2).sym == sym.PARENTESIS_ABRE;
     }
 
+    /**
+     * Construye la firma de la función cuyo encabezado empieza en una posición.
+     *
+     * @param tokens tokens del archivo
+     * @param posicion posición del tipo de retorno
+     * @return símbolo con el nombre, el tipo y los parámetros de la función
+     */
     private static SimboloFuncion leerEncabezado(ArrayList<Symbol> tokens, int posicion) {
         Symbol tokenNombre = tokens.get(posicion + 1);
         String tipoRetorno = nombreDeTipo(tokens.get(posicion).sym);
@@ -94,6 +115,12 @@ public class RecolectorFunciones {
         return funcion;
     }
 
+    /**
+     * Convierte un token de tipo en su nombre.
+     *
+     * @param tipoToken identificador del token
+     * @return nombre del tipo, o {@code null} si el token no es un tipo
+     */
     private static String nombreDeTipo(int tipoToken) {
         switch (tipoToken) {
             case sym.INT:

@@ -123,6 +123,13 @@ public class TablaSimbolos {
         }
     }
 
+    /**
+     * Escribe el título de un alcance, con el alcance que lo contiene.
+     *
+     * @param escritor destino del reporte
+     * @param alcance alcance del título
+     * @throws IOException si no se puede escribir
+     */
     private void escribirTitulo(BufferedWriter escritor, Alcance alcance) throws IOException {
         String titulo = "======= Alcance: " + alcance.getNombre();
         if (alcance.getPadre() != null) {
@@ -135,6 +142,12 @@ public class TablaSimbolos {
         escritor.newLine();
     }
 
+    /**
+     * Escribe los nombres de las columnas.
+     *
+     * @param escritor destino del reporte
+     * @throws IOException si no se puede escribir
+     */
     private void escribirEncabezadoColumnas(BufferedWriter escritor) throws IOException {
         escritor.write(String.format("%-15s %-10s %-6s %-6s %-8s %s",
                 "nombre", "categoria", "tipo", "linea", "columna", "informacion"));
@@ -142,11 +155,24 @@ public class TablaSimbolos {
         escribirSeparador(escritor);
     }
 
+    /**
+     * Escribe una línea separadora.
+     *
+     * @param escritor destino del reporte
+     * @throws IOException si no se puede escribir
+     */
     private void escribirSeparador(BufferedWriter escritor) throws IOException {
         escritor.write("-".repeat(ANCHO_REPORTE));
         escritor.newLine();
     }
 
+    /**
+     * Escribe la información de un símbolo.
+     *
+     * @param escritor destino del reporte
+     * @param simbolo símbolo de la fila
+     * @throws IOException si no se puede escribir
+     */
     private void escribirFila(BufferedWriter escritor, Simbolo simbolo) throws IOException {
         escritor.write(String.format("%-15s %-10s %-6s %-6d %-8d %s",
                 simbolo.getNombre(), simbolo.getCategoria(), simbolo.getTipo(),

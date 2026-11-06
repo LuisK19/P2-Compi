@@ -1,7 +1,0 @@
-val int total Ͱ 0 »
-
-void principal є: :э ¿:
-  val int a Ͱ calcular є: 2 :э »
-  val int b Ͱ total є: :э »
-  imprimir є: :э »
-:?

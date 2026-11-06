@@ -17,6 +17,7 @@ import javax.tools.ToolProvider;
  * proceso de Java.
  */
 public class App {
+    private static final String VERSION_JAVA = "14";
     private static final File CARPETA_PROYECTO = new File(System.getProperty("user.dir"));
     private static final File CARPETA_SALIDA = new File(CARPETA_PROYECTO, "out");
     private static final String RUNTIME_CUP =
@@ -30,8 +31,10 @@ public class App {
      */
     public static void main(String[] args) throws Exception {
         usarSalidaUtf8();
-        generarLexerParser();
-        compilarAnalizador();
+        boolean seGeneraron = generarLexerParser();
+        if (seGeneraron || hayCambiosEnFuentes()) {
+            compilarAnalizador();
+        }
         ejecutarAnalizador(args);
     }
 
@@ -44,19 +47,55 @@ public class App {
     }
 
     /**
-     * Genera los archivos Java del lexer y del parser.
+     * Genera los archivos Java del lexer y del parser si hace falta.
      *
+     * @return {@code true} si se generaron los analizadores
      * @throws Exception si no se pueden generar los analizadores
      */
-    private static void generarLexerParser() throws Exception {
+    private static boolean generarLexerParser() throws Exception {
         String rutaLexer = new File(CARPETA_PROYECTO, "src/scanner.flex").getPath();
         String rutaParser = new File(CARPETA_PROYECTO, "src/parser.cup").getPath();
         GeneradorAnalizadores generador = new GeneradorAnalizadores();
 
-        System.out.println("Generando nuevos analizadores...");
-        generador.generarLexerYParser(rutaLexer, rutaParser);
-        
-        System.out.println("¡Generacion completada con exito en la carpeta 'generated'!");
+        boolean seGeneraron = generador.generarSiHayCambios(rutaLexer, rutaParser);
+        if (seGeneraron) {
+            System.out.println("¡Generacion completada con exito en la carpeta 'generated'!");
+        }
+        return seGeneraron;
+    }
+
+    /**
+     * Indica si hay que compilar porque faltan las clases o cambió algún archivo Java.
+     *
+     * @return {@code true} si se debe compilar
+     */
+    private static boolean hayCambiosEnFuentes() {
+        File claseAnalizador = new File(CARPETA_SALIDA, "src/Analizador.class");
+        if (!claseAnalizador.exists()) {
+            return true;
+        }
+        return hayJavaMasReciente(new File(CARPETA_PROYECTO, "src"), claseAnalizador.lastModified());
+    }
+
+    /**
+     * Busca en una carpeta y sus subcarpetas un archivo Java modificado después
+     * de una fecha.
+     *
+     * @param carpeta carpeta donde se busca
+     * @param fecha fecha de comparación, en milisegundos
+     * @return {@code true} si existe un archivo Java más reciente
+     */
+    private static boolean hayJavaMasReciente(File carpeta, long fecha) {
+        for (File archivo : carpeta.listFiles()) {
+            if (archivo.isDirectory()) {
+                if (hayJavaMasReciente(archivo, fecha)) {
+                    return true;
+                }
+            } else if (archivo.getName().endsWith(".java") && archivo.lastModified() > fecha) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -76,6 +115,7 @@ public class App {
         }
 
         int resultado = compilador.run(null, System.out, System.err,
+            "--release", VERSION_JAVA,
             "-classpath", RUNTIME_CUP,
             "-d", CARPETA_SALIDA.getAbsolutePath(),
                 "generated/Lexer.java",

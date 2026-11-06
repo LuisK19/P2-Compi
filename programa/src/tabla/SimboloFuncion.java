@@ -21,10 +21,16 @@ public class SimboloFuncion extends Simbolo {
         super(nombre, "funcion", tipoRetorno, linea, columna);
     }
 
+    /**
+     * Agrega el tipo del siguiente parámetro de la función.
+     *
+     * @param tipoParametro tipo del parámetro
+     */
     public void agregarTipoParametro(String tipoParametro) {
         tiposParametros.add(tipoParametro);
     }
 
+    /** Devuelve los tipos de los parámetros en el orden en que se declaran. */
     public ArrayList<String> getTiposParametros() {
         return tiposParametros;
     }

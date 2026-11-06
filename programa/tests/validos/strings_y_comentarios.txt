@@ -1,7 +1,0 @@
-¡ comentario
-  de varias lineas !
-void principal є: :э ¿:
-  val string s Ͱ "hola mundo" »  | comentario de linea
-  val char c Ͱ 'a' »
-  write є: "fin" :э »
-:?

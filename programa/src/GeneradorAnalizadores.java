@@ -10,6 +10,38 @@ import java.nio.file.Files;
 public class GeneradorAnalizadores {
 
     /**
+     * Genera los analizadores solo si faltan o si sus fuentes cambiaron.
+     *
+     * @param rutaLexer ruta del archivo fuente de JFlex
+     * @param rutaParser ruta del archivo fuente de CUP
+     * @return {@code true} si se generaron los analizadores
+     * @throws Exception si falla la limpieza o la ejecución de JFlex/CUP
+     */
+    public boolean generarSiHayCambios(String rutaLexer, String rutaParser) throws Exception {
+        File fuenteLexer = new File(rutaLexer);
+        File fuenteParser = new File(rutaParser);
+        boolean hayCambios = necesitaGenerar(fuenteLexer, new File("generated/Lexer.java"))
+                || necesitaGenerar(fuenteParser, new File("generated/Parser.java"))
+                || necesitaGenerar(fuenteParser, new File("generated/sym.java"));
+
+        if (hayCambios) {
+            generarLexerYParser(rutaLexer, rutaParser);
+        }
+        return hayCambios;
+    }
+
+    /**
+     * Indica si un archivo generado falta o es más antiguo que su fuente.
+     *
+     * @param fuente archivo fuente
+     * @param generado archivo generado a partir de la fuente
+     * @return {@code true} si hay que generarlo de nuevo
+     */
+    private boolean necesitaGenerar(File fuente, File generado) {
+        return !generado.exists() || fuente.lastModified() > generado.lastModified();
+    }
+
+    /**
      * Prepara la carpeta de salida y genera ambos analizadores.
      *
      * <p>Antes de generar, elimina los archivos Lexer, Parser y sym previos
@@ -19,7 +51,7 @@ public class GeneradorAnalizadores {
      * @param rutaParser ruta del archivo fuente de CUP
      * @throws Exception si falla la limpieza o la ejecución de JFlex/CUP
      */
-    public void generarLexerYParser(String rutaLexer, String rutaParser) throws Exception {
+    private void generarLexerYParser(String rutaLexer, String rutaParser) throws Exception {
         File carpetaGenerada = new File("generated");
         if (!carpetaGenerada.exists() && !carpetaGenerada.mkdirs()) {
             throw new IOException("No se pudo crear la carpeta generated.");

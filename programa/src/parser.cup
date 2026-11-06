@@ -12,9 +12,9 @@ import src.tabla.ReporteTokens;
 import src.tabla.SimboloFuncion;
 import src.tabla.TablaSimbolos;
 
-/* Código auxiliar del parser: conserva el lexer como fuente de tokens, adapta
- * los errores de CUP para incluir ubicación y lexema, y delega las
- * comprobaciones semánticas en AnalizadorSemantico.
+/* Código auxiliar del parser: guarda el lexer que entrega los tokens, reporta
+ * los errores con su ubicación y conecta las acciones con AnalizadorSemantico
+ * y GeneradorCodigo.
  */
 parser code {:
     Lexer analizadorLexico;
@@ -24,10 +24,12 @@ parser code {:
     String codigoGlobales = "";
     String codigoIntermedio = "";
 
+    /** Crea el parser con el lexer que le entrega los tokens. */
     public Parser(Lexer analizadorLexico) {
         this.analizadorLexico = analizadorLexico;
     }
 
+    /** Imprime un error de sintaxis con su línea, columna y lexema. */
     public void report_error(String mensaje, Object infoAdicional) {
         huboErroresSintacticos = true;
         semantico.contarErrorSintactico();
@@ -53,44 +55,51 @@ parser code {:
         System.err.println(textoError);
     }
 
+    /** Indica si se reportó algún error de sintaxis. */
     public boolean huboErroresSintacticos() {
         return huboErroresSintacticos;
     }
 
+    /** Indica si se reportó algún error semántico. */
     public boolean huboErroresSemanticos() {
         return semantico.huboErrores();
     }
 
+    /** Guarda las firmas de las funciones obtenidas antes del análisis. */
     public void setFuncionesDeclaradas(HashMap<String, SimboloFuncion> funcionesDeclaradas) {
         semantico.setFuncionesDeclaradas(funcionesDeclaradas);
     }
 
+    /** Devuelve la tabla de símbolos construida durante el análisis. */
     public TablaSimbolos getTablaSimbolos() {
         return semantico.getTablaSimbolos();
     }
 
+    /** Devuelve el reporte con la tabla de cada identificador. */
     public ReporteTokens getReporteTokens() {
         return semantico.getReporteTokens();
     }
 
+    /** Devuelve el código intermedio del programa. */
     public String getCodigoIntermedio() {
         return codigoIntermedio;
     }
 
-    // Cantidad de tokens que deben leerse bien despues de un error para reportar el siguiente.
+    /** Devuelve cuántos tokens deben leerse bien después de un error para reportar el siguiente. */
     public int error_sync_size() {
         return 1;
     }
 
+    /** Reporta un error del que el parser no puede recuperarse. */
     public void report_fatal_error(String mensaje, Object infoAdicional) {
         report_error("ERROR FATAL: " + mensaje, infoAdicional);
     }
 :};
 
 scan with {: return analizadorLexico.next_token(); :};
-/* Terminales*/
+/* Terminales */
 
-/* Palabras reservadas y tipos de dato. */
+/* Palabras reservadas y tipos de dato */
 terminal VAL, INT, FLOAT, BOOL, CHAR, STR, TRUE, FALSE;
 terminal IF, ELIF, ELSE, WHILE, FOR, RETURN, BREAK, WRITE, READ, VOID, PRINCIPAL;
 
@@ -98,13 +107,13 @@ terminal IF, ELIF, ELSE, WHILE, FOR, RETURN, BREAK, WRITE, READ, VOID, PRINCIPAL
 terminal OP_SUMA, OP_MENOS, OP_MULT, OP_DIV, OP_DIV_ENT, OP_MOD, OP_POT;
 terminal OP_INC, OP_DEC;
 
-/* Operadores Relacionales */
+/* Operadores relacionales */
 terminal OP_MENOR, OP_MAYOR, OP_MENIG, OP_MAYIG, OP_IGUAL, OP_DIFER;
 
-/* Operadores Logicos */
+/* Operadores lógicos */
 terminal OP_AND, OP_OR, OP_NOT;
 
-/* Delimitadores y Simbolos Especiales */
+/* Delimitadores y símbolos especiales */
 terminal LLAVE_ABRE, LLAVE_CIERRA;
 terminal CORCHETE_ABRE, CORCHETE_CIERRA;
 terminal PARENTESIS_ABRE, PARENTESIS_CIERRA;
@@ -117,7 +126,7 @@ terminal Double FLOTANTE;
 terminal String CADENA;
 terminal String CARACTER;
 
-/*No terminales*/
+/* No terminales */
 non terminal programa;
 non terminal String encabezado_funcion, encabezado_principal, params, parametro, param_fun;
 non terminal ArrayList<ResultadoExpresion> args;
@@ -154,10 +163,10 @@ non terminal String sentencia_return, sentencia_break, sentencia_write, sentenci
 non terminal ResultadoSentencia linea_bloque, lista_lineas, bloque, estructura_control;
 non terminal ResultadoSentencia sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
 
-/* Simbolo inicial */
+/* Símbolo inicial */
 start with programa;
 
-/* Producciones para identificadores, tipos y valores literales. */
+/* Identificadores, tipos y valores literales */
 
 identificador ::= ID:nombre {: RESULT = nombre; :} ;
 
@@ -207,6 +216,8 @@ valor_arreglo_float ::= literal_float:valor   {: RESULT = GeneradorCodigo.textoF
                     | negativo_float:valor  {: RESULT = valor; :}
                     ;
 
+/* Declaraciones y asignaciones */
+
 declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
                 {: parser.semantico.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
                    RESULT = parser.generador.valorInicial(parser.semantico.nombreEnCodigo(nombre), tipoDato); :}
@@ -244,6 +255,10 @@ asignacion ::= identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
                    parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
                    RESULT = parser.generador.asignacionElemento(parser.semantico.nombreEnCodigo(nombre), indice, valor); :}
            ;
+
+/* Expresiones lógicas, relacionales y aritméticas. La cadena de reglas define la
+ * precedencia: pot, luego + y -, luego * / y //, y por último mod.
+ */
 
 expresion ::= expr_log:valor {: RESULT = valor; :} ;
 
@@ -374,6 +389,8 @@ decremento ::= identificador:nombre OP_DEC
                    RESULT = parser.generador.incremento(tipo, parser.semantico.nombreEnCodigo(nombre), "-"); :}
            ;
 
+/* Sentencias y bloques */
+
 sentencia ::= declaracion:codigo           {: RESULT = codigo; :}
           | declaracion_arreglo:codigo     {: RESULT = codigo; :}
           | asignacion:codigo              {: RESULT = codigo; :}
@@ -386,6 +403,10 @@ sentencia ::= declaracion:codigo           {: RESULT = codigo; :}
 
 condicion ::= PARENTESIS_ABRE:parentesis expresion:valor PARENTESIS_CIERRA
                 {: parser.semantico.validarCondicion(valor, parentesisleft, parentesisright);
+                   RESULT = valor; :}
+          | PARENTESIS_ABRE:parentesis expresion:valor
+                {: parser.report_error("falta cerrar la condicion con :э",
+                           new Symbol(sym.PARENTESIS_ABRE, parentesisleft, parentesisright));
                    RESULT = valor; :}
           | PARENTESIS_ABRE error PARENTESIS_CIERRA
                 {: RESULT = new ResultadoExpresion(ResultadoExpresion.TIPO_ERROR); :}
@@ -441,6 +462,8 @@ linea_bloque ::= sentencia:codigo              {: RESULT = new ResultadoSentenci
              | error bloque                    {: RESULT = new ResultadoSentencia("", false); :}
              ;
 
+/* Estructuras de control */
+
 estructura_control ::= sentencia_if:estructura {: RESULT = estructura; :}
                    | sentencia_while:codigo    {: RESULT = new ResultadoSentencia(codigo, false); :}
                    | sentencia_for:codigo      {: RESULT = new ResultadoSentencia(codigo, false); :}
@@ -485,6 +508,8 @@ actualizacion_for ::= expresion:valor
                        RESULT = parser.generador.asignacion(parser.semantico.nombreEnCodigo(nombre), valor); :}
                   ;
 
+/* Sentencias return, break, write y read */
+
 sentencia_return ::= RETURN:palabraReturn expresion:valor FIN_SENT
                      {: parser.semantico.validarReturn(valor, palabraReturnleft, palabraReturnright);
                         RESULT = parser.generador.sentenciaReturn(valor); :}
@@ -515,6 +540,8 @@ sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA F
                       parser.semantico.validarTipoRead(nombre, tipo, nombreleft, nombreright);
                       RESULT = parser.generador.sentenciaRead(parser.semantico.nombreEnCodigo(nombre)); :}
                ;
+
+/* Funciones, parámetros y llamadas */
 
 funcion ::= encabezado_funcion:nombreFuncion param_fun:parametros cuerpo_funcion:cuerpo
                 {: parser.semantico.validarFuncionConReturn();
@@ -572,6 +599,8 @@ args ::= expresion:valor
                RESULT = resto; :}
      ;
 
+/* Función principal */
+
 principal ::= encabezado_principal:nombreFuncion cuerpo_funcion:cuerpo
                 {: parser.semantico.cerrarAlcance();
                    RESULT = parser.generador.funcion(nombreFuncion, "", cuerpo); :}
@@ -582,6 +611,8 @@ encabezado_principal ::= VOID PRINCIPAL:palabraPrincipal PARENTESIS_ABRE PARENTE
                             parser.semantico.abrirAlcance("principal");
                             RESULT = parser.generador.nombreFuncion("void", "principal"); :}
                      ;
+
+/* Programa: variables globales y funciones en cualquier orden, con un solo principal */
 
 elementos_opc ::= elementos_opc:previos declaracion:codigo
                     {: parser.codigoGlobales += codigo;

@@ -1,3 +1,0 @@
-void principal є: :э ¿:
-  val int arr Ͱ ¿: 1, 2, 3 :? »
-:?

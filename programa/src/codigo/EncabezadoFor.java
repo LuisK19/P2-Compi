@@ -24,14 +24,17 @@ public class EncabezadoFor {
         this.actualizacion = actualizacion;
     }
 
+    /** Devuelve el código de la declaración o asignación inicial. */
     public String getInicio() {
         return inicio;
     }
 
+    /** Devuelve la condición que se evalúa en cada vuelta. */
     public ResultadoExpresion getCondicion() {
         return condicion;
     }
 
+    /** Devuelve el código que se ejecuta al final de cada vuelta. */
     public String getActualizacion() {
         return actualizacion;
     }

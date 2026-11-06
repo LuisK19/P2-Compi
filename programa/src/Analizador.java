@@ -3,23 +3,22 @@ package src;
 import generated.Lexer;
 import generated.Parser;
 import generated.sym;
-import java_cup.runtime.Symbol;
-import src.semantico.RecolectorFunciones;
-
-import java.io.File;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java_cup.runtime.Symbol;
+import src.semantico.RecolectorFunciones;
 
 /**
- * Ejecuta el análisis léxico y sintáctico de un archivo fuente.
+ * Ejecuta las fases del compilador sobre un archivo fuente.
  *
- * <p>También genera un reporte CSV con los tokens encontrados durante el
- * análisis léxico.
+ * <p>Lee los tokens, ejecuta el parser y genera los reportes de tokens, de la
+ * tabla de símbolos y del código intermedio.
  */
 public class Analizador {
 
@@ -37,7 +36,7 @@ public class Analizador {
     public static void main(String[] args) throws IOException {
         usarSalidaUtf8();
 
-        String archivoEntrada = args.length > 0 ? args[0] : "tests/validos/semantico_funciones.txt";
+        String archivoEntrada = args.length > 0 ? args[0] : "tests/validos/programa_completo.txt";
         String archivoSalidaTokens = args.length > 1 ? args[1] : "salida/tokens_encontrados.csv";
         String archivoSalidaTabla = args.length > 2 ? args[2] : "salida/tabla_simbolos.txt";
         String archivoSalidaCodigo = args.length > 3 ? args[3] : "salida/codigo_intermedio.txt";

@@ -1,6 +1,0 @@
-void principal є: :э ¿:
-  val float f Ͱ 2.5 »
-  val float r1 Ͱ f pot 2.5 »
-  val int r2 Ͱ 2 pot -3 »
-  val int r3 Ͱ 2 pot є: -1 :э »
-:?

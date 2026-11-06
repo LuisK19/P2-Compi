@@ -1,7 +1,0 @@
-void principal є: :э ¿:
-  val bool x Ͱ true »
-  val bool y Ͱ false »
-  val bool r1 Ͱ ʃ: є: x :э λ є: y :э :ʅ == ʃ: false :ʅ »
-  val bool r2 Ͱ ʃ: Σ є: x :э :ʅ != ʃ: y :ʅ »
-  val bool r3 Ͱ ʃ: ʃ: 1 :ʅ < ʃ: 2 :ʅ :ʅ != ʃ: ʃ: 3 :ʅ >= ʃ: 4 :ʅ :ʅ »
-:?

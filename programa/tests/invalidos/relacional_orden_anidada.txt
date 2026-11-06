@@ -1,6 +1,0 @@
-void principal є: :э ¿:
-  val int a Ͱ 1 »
-  val int b Ͱ 2 »
-  val int c Ͱ 3 »
-  val bool r Ͱ ʃ: ʃ: a :ʅ < ʃ: b :ʅ :ʅ < ʃ: c :ʅ »
-:?

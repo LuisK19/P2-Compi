@@ -1,7 +1,0 @@
-void principal є: :э ¿:
-  val int a Ͱ 7 »
-  val int b Ͱ є: a + 2 :э * 3 - -4 »
-  val float c Ͱ 2.5 * є: 0.5 + 3.5 :э / 1.5 »
-  val int d Ͱ a // 2 mod 3 »
-  val int e Ͱ a pot 2 + b »
-:?

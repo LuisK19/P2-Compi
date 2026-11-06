@@ -33,10 +33,12 @@ public class Simbolo {
         this.columna = columna;
     }
 
+    /** Devuelve el nombre del identificador en el código fuente. */
     public String getNombre() {
         return nombre;
     }
 
+    /** Devuelve el nombre del identificador en el código intermedio. */
     public String getNombreEnCodigo() {
         return nombreEnCodigo;
     }
@@ -50,26 +52,36 @@ public class Simbolo {
         this.nombreEnCodigo = nombreEnCodigo;
     }
 
+    /** Devuelve el nombre del alcance donde se declaró el símbolo. */
     public String getAlcance() {
         return alcance;
     }
 
+    /**
+     * Guarda el alcance donde se declaró el símbolo.
+     *
+     * @param alcance nombre del alcance
+     */
     public void setAlcance(String alcance) {
         this.alcance = alcance;
     }
 
+    /** Devuelve la categoría: variable, arreglo, funcion o parametro. */
     public String getCategoria() {
         return categoria;
     }
 
+    /** Devuelve el tipo de dato declarado o, en funciones, el de retorno. */
     public String getTipo() {
         return tipo;
     }
 
+    /** Devuelve la línea de la declaración, empezando en 1. */
     public int getLinea() {
         return linea;
     }
 
+    /** Devuelve la columna de la declaración, empezando en 1. */
     public int getColumna() {
         return columna;
     }

@@ -7,8 +7,8 @@ import java.util.Stack;
 import src.semantico.ResultadoExpresion;
 
 /**
- * Da los nombres de temporales y los números de etiqueta que usa el código
- * intermedio de tres direcciones.
+ * Genera el código intermedio de tres direcciones de cada construcción del
+ * lenguaje y lleva los contadores de temporales y etiquetas.
  */
 public class GeneradorCodigo {
     private HashMap<String, Integer> contadoresTemporales = new HashMap<>();
@@ -487,7 +487,7 @@ public class GeneradorCodigo {
     }
 
     /**
-     * Escribe un literal flotante sin notación científica
+     * Escribe un literal flotante sin notación científica.
      *
      * @param valor valor del literal
      * @return el literal como texto
