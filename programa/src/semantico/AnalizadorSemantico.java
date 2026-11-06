@@ -100,10 +100,12 @@ public class AnalizadorSemantico {
         }
     }
 
-    /** Agrega un símbolo con un nombre propio en el código si oculta a otro visible. */
+    /** Agrega un símbolo con su nombre en el código: _global o, si oculta a otra local, _local. */
     private void agregarVariable(Simbolo simbolo) {
         Simbolo oculto = tabla.buscar(simbolo.getNombre());
-        if (oculto != null) {
+        if (tabla.estaEnAlcanceGlobal()) {
+            simbolo.setNombreEnCodigo(simbolo.getNombre() + "_global");
+        } else if (oculto != null && !oculto.getAlcance().equals("global")) {
             simbolo.setNombreEnCodigo(oculto.getNombreEnCodigo() + "_local");
         }
         tabla.agregar(simbolo);

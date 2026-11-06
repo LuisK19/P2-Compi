@@ -21,6 +21,7 @@ parser code {:
     private boolean huboErroresSintacticos = false;
     AnalizadorSemantico semantico = new AnalizadorSemantico();
     GeneradorCodigo generador = new GeneradorCodigo();
+    String codigoGlobales = "";
     String codigoIntermedio = "";
 
     public Parser(Lexer analizadorLexico) {
@@ -582,14 +583,21 @@ encabezado_principal ::= VOID PRINCIPAL:palabraPrincipal PARENTESIS_ABRE PARENTE
                             RESULT = parser.generador.nombreFuncion("void", "principal"); :}
                      ;
 
-elementos_opc ::= elementos_opc:previos declaracion:codigo          {: RESULT = previos + codigo; :}
-              | elementos_opc:previos declaracion_arreglo:codigo  {: RESULT = previos + codigo; :}
-              | elementos_opc:previos funcion:codigo              {: RESULT = previos + codigo; :}
-              | elementos_opc:previos error FIN_SENT              {: RESULT = previos; :}
-              | elementos_opc:previos error LLAVE_CIERRA          {: RESULT = previos; :}
-              |                                                   {: RESULT = ""; :}
+elementos_opc ::= elementos_opc:previos declaracion:codigo
+                    {: parser.codigoGlobales += codigo;
+                       RESULT = previos; :}
+              | elementos_opc:previos declaracion_arreglo:codigo
+                    {: parser.codigoGlobales += codigo;
+                       RESULT = previos; :}
+              | elementos_opc:previos funcion:codigo
+                    {: RESULT = previos + codigo; :}
+              | elementos_opc:previos error FIN_SENT
+                    {: RESULT = previos; :}
+              | elementos_opc:previos error LLAVE_CIERRA
+                    {: RESULT = previos; :}
+              |     {: RESULT = ""; :}
               ;
 
 programa ::= elementos_opc:antes principal:codigoPrincipal elementos_opc:despues
-             {: parser.codigoIntermedio = antes + codigoPrincipal + despues; :}
+             {: parser.codigoIntermedio = parser.codigoGlobales + antes + codigoPrincipal + despues; :}
          ;
