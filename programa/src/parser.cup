@@ -21,6 +21,7 @@ parser code {:
     private boolean huboErroresSintacticos = false;
     AnalizadorSemantico semantico = new AnalizadorSemantico();
     GeneradorCodigo generador = new GeneradorCodigo();
+    String codigoGlobales = "";
     String codigoIntermedio = "";
 
     public Parser(Lexer analizadorLexico) {
@@ -133,7 +134,7 @@ non terminal Double literal_float;
 non terminal String literal_bool, literal_char, literal_str;
 
 /* No terminales que devuelven un valor para la tabla de símbolos */
-non terminal String identificador, tipo;
+non terminal String identificador, tipo, tipo_funcion;
 non terminal Integer literal_int, tamano_arreglo;
 
 /* No terminales que devuelven el resultado de una expresión */
@@ -144,7 +145,7 @@ non terminal ResultadoExpresion acceso_arreglo, incremento, decremento, llamada_
 non terminal ResultadoExpresion condicion;
 
 /* No terminales que devuelven el código intermedio de una sentencia o estructura */
-non terminal String globales_opc, funciones_opc, principal, funcion, cuerpo_funcion;
+non terminal String elementos_opc, principal, funcion, cuerpo_funcion;
 non terminal String declaracion, declaracion_arreglo, asignacion, sentencia;
 non terminal String sentencia_while, sentencia_for;
 non terminal String sentencia_return, sentencia_break, sentencia_write, sentencia_read;
@@ -525,7 +526,11 @@ funcion ::= encabezado_funcion:nombreFuncion param_fun:parametros cuerpo_funcion
                    RESULT = parser.generador.funcion(nombreFuncion, "", cuerpo); :}
         ;
 
-encabezado_funcion ::= tipo:tipoRetorno identificador:nombre
+tipo_funcion ::= tipo:tipoDato {: RESULT = tipoDato; :}
+             | VOID            {: RESULT = "void"; :}
+             ;
+
+encabezado_funcion ::= tipo_funcion:tipoRetorno identificador:nombre
                        {: parser.semantico.validarTipoRetorno(nombre, tipoRetorno, nombreleft, nombreright);
                           parser.semantico.agregarFuncion(nombre, tipoRetorno, nombreleft, nombreright);
                           parser.semantico.abrirAlcance(nombre);
@@ -578,16 +583,21 @@ encabezado_principal ::= VOID PRINCIPAL:palabraPrincipal PARENTESIS_ABRE PARENTE
                             RESULT = parser.generador.nombreFuncion("void", "principal"); :}
                      ;
 
-globales_opc ::= declaracion:codigo globales_opc:resto           {: RESULT = codigo + resto; :}
-             | declaracion_arreglo:codigo globales_opc:resto   {: RESULT = codigo + resto; :}
-             | error FIN_SENT globales_opc:resto               {: RESULT = resto; :}
-             |                                                 {: RESULT = ""; :}
-             ;
-
-funciones_opc ::= funcion:codigo funciones_opc:resto  {: RESULT = codigo + resto; :}
-              |                                       {: RESULT = ""; :}
+elementos_opc ::= elementos_opc:previos declaracion:codigo
+                    {: parser.codigoGlobales += codigo;
+                       RESULT = previos; :}
+              | elementos_opc:previos declaracion_arreglo:codigo
+                    {: parser.codigoGlobales += codigo;
+                       RESULT = previos; :}
+              | elementos_opc:previos funcion:codigo
+                    {: RESULT = previos + codigo; :}
+              | elementos_opc:previos error FIN_SENT
+                    {: RESULT = previos; :}
+              | elementos_opc:previos error LLAVE_CIERRA
+                    {: RESULT = previos; :}
+              |     {: RESULT = ""; :}
               ;
 
-programa ::= globales_opc:globales funciones_opc:funcionesAntes principal:codigoPrincipal funciones_opc:funcionesDespues
-             {: parser.codigoIntermedio = globales + funcionesAntes + codigoPrincipal + funcionesDespues; :}
+programa ::= elementos_opc:antes principal:codigoPrincipal elementos_opc:despues
+             {: parser.codigoIntermedio = parser.codigoGlobales + antes + codigoPrincipal + despues; :}
          ;

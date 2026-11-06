@@ -50,6 +50,15 @@ public class TablaSimbolos {
     }
 
     /**
+     * Indica si el alcance actual es el global.
+     *
+     * @return {@code true} si no hay una función o bloque abierto
+     */
+    public boolean estaEnAlcanceGlobal() {
+        return alcancesAbiertos.size() == 1;
+    }
+
+    /**
      * Agrega un símbolo al alcance actual.
      *
      * @param simbolo símbolo a registrar

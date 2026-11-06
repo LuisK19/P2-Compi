@@ -53,6 +53,12 @@ public class AnalizadorSemantico {
                 + ", columna " + (columna + 1) + ": " + mensaje);
     }
 
+    /** Imprime un error semántico que solo se puede ubicar por su línea. */
+    private void reportarErrorDeLinea(String mensaje, int linea) {
+        huboErrores = true;
+        System.err.println("Error semantico en la linea " + (linea + 1) + ": " + mensaje);
+    }
+
     /** Devuelve el reporte donde se registra la tabla de cada identificador. */
     public ReporteTokens getReporteTokens() {
         return reporteTokens;
@@ -94,10 +100,12 @@ public class AnalizadorSemantico {
         }
     }
 
-    /** Agrega un símbolo con un nombre propio en el código si oculta a otro visible. */
+    /** Agrega un símbolo con su nombre en el código: _global o, si oculta a otra local, _local. */
     private void agregarVariable(Simbolo simbolo) {
         Simbolo oculto = tabla.buscar(simbolo.getNombre());
-        if (oculto != null) {
+        if (tabla.estaEnAlcanceGlobal()) {
+            simbolo.setNombreEnCodigo(simbolo.getNombre() + "_global");
+        } else if (oculto != null && !oculto.getAlcance().equals("global")) {
             simbolo.setNombreEnCodigo(oculto.getNombreEnCodigo() + "_local");
         }
         tabla.agregar(simbolo);
@@ -422,9 +430,7 @@ public class AnalizadorSemantico {
     /** Reporta como inaccesible la línea que sigue a otra que corta el flujo. */
     public void validarLineaAlcanzable(ResultadoSentencia linea, int lineaSiguiente) {
         if (linea.cortaFlujo()) {
-            huboErrores = true;
-            System.err.println("Error semantico en la linea " + (lineaSiguiente + 1)
-                    + ": codigo inaccesible, la ejecucion nunca llega a esta linea");
+            reportarErrorDeLinea("codigo inaccesible, la ejecucion nunca llega a esta linea", lineaSiguiente);
         }
     }
 
@@ -435,7 +441,8 @@ public class AnalizadorSemantico {
      */
     public void validarFuncionConReturn() {
         boolean huboErroresEnFuncion = erroresSintacticos > erroresSintacticosAlIniciarFuncion;
-        if (!funcionTieneReturn && !huboErroresEnFuncion) {
+        boolean esVoid = funcionActual.getTipo().equals("void");
+        if (!funcionTieneReturn && !huboErroresEnFuncion && !esVoid) {
             reportarError("la funcion '" + funcionActual.getNombre() + "' no tiene ningun return",
                     funcionActual.getLinea() - 1, funcionActual.getColumna() - 1);
         }
