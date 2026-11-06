@@ -407,6 +407,15 @@ public class AnalizadorSemantico {
         }
     }
 
+    /** Reporta como inaccesible la línea que sigue a otra que corta el flujo. */
+    public void validarLineaAlcanzable(ResultadoSentencia linea, int lineaSiguiente) {
+        if (linea.cortaFlujo()) {
+            huboErrores = true;
+            System.err.println("Error semantico en la linea " + (lineaSiguiente + 1)
+                    + ": codigo inaccesible, la ejecucion nunca llega a esta linea");
+        }
+    }
+
     /**
      * Valida que la función que termina haya tenido al menos un return. Si hubo
      * errores de sintaxis en la función no se revisa, porque el return pudo

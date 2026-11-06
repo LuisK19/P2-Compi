@@ -87,6 +87,7 @@ public class App {
                 "src/tabla/Alcance.java",
                 "src/tabla/TablaSimbolos.java",
                 "src/semantico/ResultadoExpresion.java",
+                "src/semantico/ResultadoSentencia.java",
                 "src/semantico/AnalizadorSemantico.java",
                 "src/semantico/RecolectorFunciones.java",
                 "src/codigo/GeneradorCodigo.java",

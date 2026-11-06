@@ -7,6 +7,7 @@ import src.codigo.EncabezadoFor;
 import src.codigo.GeneradorCodigo;
 import src.semantico.AnalizadorSemantico;
 import src.semantico.ResultadoExpresion;
+import src.semantico.ResultadoSentencia;
 import src.tabla.SimboloFuncion;
 import src.tabla.TablaSimbolos;
 
@@ -139,10 +140,13 @@ non terminal ResultadoExpresion condicion;
 
 /* No terminales que devuelven el código intermedio de una sentencia o estructura */
 non terminal String globales_opc, funciones_opc, principal, funcion, cuerpo_funcion;
-non terminal String declaracion, declaracion_arreglo, asignacion, bloque, lista_lineas, linea_bloque, sentencia;
-non terminal String estructura_control, sentencia_if, sentencia_while, sentencia_for;
-non terminal String elif_opc, else_opc, sentencia_elif, sentencia_else;
+non terminal String declaracion, declaracion_arreglo, asignacion, sentencia;
+non terminal String sentencia_while, sentencia_for;
 non terminal String sentencia_return, sentencia_break, sentencia_write, sentencia_read;
+
+/* No terminales que devuelven el código de una línea y si esta corta el flujo */
+non terminal ResultadoSentencia linea_bloque, lista_lineas, bloque, estructura_control;
+non terminal ResultadoSentencia sentencia_if, elif_opc, else_opc, sentencia_elif, sentencia_else;
 
 /* Simbolo inicial */
 start with programa;
@@ -372,8 +376,6 @@ sentencia ::= declaracion:codigo           {: RESULT = codigo; :}
           | llamada_fun:llamada FIN_SENT   {: RESULT = parser.generador.llamadaComoSentencia(llamada); :}
           | sentencia_write:codigo         {: RESULT = codigo; :}
           | sentencia_read:codigo          {: RESULT = codigo; :}
-          | sentencia_return:codigo        {: RESULT = codigo; :}
-          | sentencia_break:codigo         {: RESULT = codigo; :}
           ;
 
 condicion ::= PARENTESIS_ABRE:parentesis expresion:valor PARENTESIS_CIERRA
@@ -384,55 +386,63 @@ condicion ::= PARENTESIS_ABRE:parentesis expresion:valor PARENTESIS_CIERRA
           ;
 
 sentencia_if ::= apertura_if condicion:condicion bloque:cuerpo elif_opc:ramasElif else_opc:cuerpoElse
-                 {: RESULT = parser.generador.sentenciaIf(condicion, cuerpo, ramasElif, cuerpoElse); :}
+                 {: String codigo = parser.generador.sentenciaIf(condicion, cuerpo.getCodigo(), ramasElif.getCodigo(), cuerpoElse.getCodigo());
+                    boolean cortaFlujo = cuerpo.cortaFlujo() && ramasElif.cortaFlujo() && cuerpoElse.cortaFlujo();
+                    RESULT = new ResultadoSentencia(codigo, cortaFlujo); :}
              ;
 
 apertura_if ::= IF {: parser.generador.abrirIf(); :} ;
 
-elif_opc ::= sentencia_elif:codigo elif_opc:resto   {: RESULT = codigo + resto; :}
-         |                                        {: RESULT = ""; :}
+elif_opc ::= sentencia_elif:rama elif_opc:resto
+                {: RESULT = new ResultadoSentencia(rama.getCodigo() + resto.getCodigo(), rama.cortaFlujo() && resto.cortaFlujo()); :}
+         |      {: RESULT = new ResultadoSentencia("", true); :}
          ;
 
-else_opc ::= sentencia_else:codigo   {: RESULT = codigo; :}
-         |                         {: RESULT = ""; :}
+else_opc ::= sentencia_else:rama   {: RESULT = rama; :}
+         |                       {: RESULT = new ResultadoSentencia("", false); :}
          ;
 
 sentencia_elif ::= apertura_elif condicion:condicion bloque:cuerpo
-                   {: RESULT = parser.generador.ramaElif(condicion, cuerpo); :}
+                   {: RESULT = new ResultadoSentencia(parser.generador.ramaElif(condicion, cuerpo.getCodigo()), cuerpo.cortaFlujo()); :}
                ;
 
 apertura_elif ::= ELIF {: parser.generador.abrirElif(); :} ;
-sentencia_else ::= ELSE bloque:codigo    {: RESULT = codigo; :} ;
+sentencia_else ::= ELSE bloque:cuerpo    {: RESULT = cuerpo; :} ;
 
-bloque ::= inicio_bloque lista_lineas:codigo LLAVE_CIERRA
+bloque ::= inicio_bloque lista_lineas:lineas LLAVE_CIERRA
                 {: parser.semantico.cerrarAlcance();
-                   RESULT = codigo; :}
+                   RESULT = lineas; :}
        | inicio_bloque error LLAVE_CIERRA
                 {: parser.semantico.cerrarAlcance();
-                   RESULT = ""; :}
+                   RESULT = new ResultadoSentencia("", false); :}
        ;
 
 inicio_bloque ::= LLAVE_ABRE:llave {: parser.semantico.abrirAlcance("bloque linea " + (llaveleft + 1)); :} ;
 
-lista_lineas ::= linea_bloque:codigo                      {: RESULT = codigo; :}
-             | linea_bloque:codigo lista_lineas:resto     {: RESULT = codigo + resto; :}
+lista_lineas ::= linea_bloque:linea
+                    {: RESULT = linea; :}
+             | linea_bloque:linea lista_lineas:resto
+                    {: parser.semantico.validarLineaAlcanzable(linea, restoleft);
+                       RESULT = new ResultadoSentencia(linea.getCodigo() + resto.getCodigo(), linea.cortaFlujo() || resto.cortaFlujo()); :}
              ;
 
-linea_bloque ::= sentencia:codigo              {: RESULT = codigo; :}
-             | estructura_control:codigo       {: RESULT = codigo; :}
-             | bloque:codigo                   {: RESULT = codigo; :}
-             | error FIN_SENT                  {: RESULT = ""; :}
-             | error bloque                    {: RESULT = ""; :}
+linea_bloque ::= sentencia:codigo              {: RESULT = new ResultadoSentencia(codigo, false); :}
+             | sentencia_return:codigo         {: RESULT = new ResultadoSentencia(codigo, true); :}
+             | sentencia_break:codigo          {: RESULT = new ResultadoSentencia(codigo, true); :}
+             | estructura_control:linea        {: RESULT = linea; :}
+             | bloque:linea                    {: RESULT = linea; :}
+             | error FIN_SENT                  {: RESULT = new ResultadoSentencia("", false); :}
+             | error bloque                    {: RESULT = new ResultadoSentencia("", false); :}
              ;
 
-estructura_control ::= sentencia_if:codigo     {: RESULT = codigo; :}
-                   | sentencia_while:codigo    {: RESULT = codigo; :}
-                   | sentencia_for:codigo      {: RESULT = codigo; :}
+estructura_control ::= sentencia_if:estructura {: RESULT = estructura; :}
+                   | sentencia_while:codigo    {: RESULT = new ResultadoSentencia(codigo, false); :}
+                   | sentencia_for:codigo      {: RESULT = new ResultadoSentencia(codigo, false); :}
                    ;
 
 sentencia_while ::= apertura_while condicion:condicion bloque:cuerpo
                     {: parser.semantico.salirDeCiclo();
-                       RESULT = parser.generador.sentenciaWhile(condicion, cuerpo); :}
+                       RESULT = parser.generador.sentenciaWhile(condicion, cuerpo.getCodigo()); :}
                 ;
 
 apertura_while ::= WHILE
@@ -443,7 +453,7 @@ apertura_while ::= WHILE
 sentencia_for ::= apertura_for encabezado_for:encabezado bloque:cuerpo
                   {: parser.semantico.salirDeCiclo();
                      parser.semantico.cerrarAlcance();
-                     RESULT = parser.generador.sentenciaFor(encabezado, cuerpo); :}
+                     RESULT = parser.generador.sentenciaFor(encabezado, cuerpo.getCodigo()); :}
               ;
 
 apertura_for ::= FOR:palabraFor
@@ -517,7 +527,7 @@ encabezado_funcion ::= tipo:tipoRetorno identificador:nombre
                           RESULT = parser.generador.nombreFuncion(tipoRetorno, nombre); :}
                    ;
 
-cuerpo_funcion ::= LLAVE_ABRE lista_lineas:codigo LLAVE_CIERRA  {: RESULT = codigo; :}
+cuerpo_funcion ::= LLAVE_ABRE lista_lineas:lineas LLAVE_CIERRA  {: RESULT = lineas.getCodigo(); :}
                | LLAVE_ABRE error LLAVE_CIERRA                {: RESULT = ""; :}
                ;
 
