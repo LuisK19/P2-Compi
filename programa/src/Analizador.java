@@ -101,7 +101,7 @@ public class Analizador {
             Lexer analizadorLexico = new Lexer(lector);
             Symbol tokenActual;
 
-            escritor.write("token,lexema,categoria");
+            escritor.write("id_token,token,lexema,categoria,tabla,informacion");
             escritor.newLine();
 
             while ((tokenActual = analizadorLexico.next_token()).sym != sym.EOF) {
@@ -109,9 +109,12 @@ public class Analizador {
                 String lexema = tokenActual.value.toString();
                 String categoria = clasificarToken(tokenActual.sym);
 
-                escritor.write(nombreToken + ","
+                escritor.write(tokenActual.sym + ","
+                        + nombreToken + ","
                         + escaparCampoCsv(lexema) + ","
-                        + escaparCampoCsv(categoria));
+                        + escaparCampoCsv(categoria) + ","
+                        + escaparCampoCsv("Ninguna") + ","
+                        + escaparCampoCsv(informacionAlmacenada(categoria)));
                 escritor.newLine();
             }
 
@@ -207,6 +210,22 @@ public class Analizador {
             default:
                 return "Token no clasificado";
         }
+    }
+
+    /**
+     * Indica qué información se guarda de un token según su categoría.
+     *
+     * @param categoria categoría dada por {@link #clasificarToken(int)}
+     * @return descripción de la información almacenada
+     */
+    private static String informacionAlmacenada(String categoria) {
+        if (categoria.equals("Identificador")) {
+            return "nombre, categoria, tipo, linea, columna";
+        }
+        if (categoria.startsWith("Literal")) {
+            return "No se almacena; se usa directo en el codigo intermedio";
+        }
+        return "No se almacena";
     }
 
     /**
