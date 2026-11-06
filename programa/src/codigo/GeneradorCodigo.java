@@ -414,6 +414,17 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Genera un return: el código de la expresión y la instrucción que retorna
+     * su resultado.
+     *
+     * @param valor expresión retornada
+     * @return código del return
+     */
+    public String sentenciaReturn(ResultadoExpresion valor) {
+        return valor.getCodigo() + instruccion("return " + valor.getDireccion());
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal

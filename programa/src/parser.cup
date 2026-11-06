@@ -471,7 +471,7 @@ actualizacion_for ::= expresion:valor
 
 sentencia_return ::= RETURN:palabraReturn expresion:valor FIN_SENT
                      {: parser.semantico.validarReturn(valor, palabraReturnleft, palabraReturnright);
-                        RESULT = ""; :}
+                        RESULT = parser.generador.sentenciaReturn(valor); :}
                  ;
 sentencia_break ::= BREAK:palabraBreak FIN_SENT
                     {: parser.semantico.validarBreak(palabraBreakleft, palabraBreakright);

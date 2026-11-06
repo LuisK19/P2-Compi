@@ -19,3 +19,13 @@ void principal є: :э ¿:
 char letra є: char c :э ¿:
   return c »
 :?
+
+int primero_positivo є: int a, int b :э ¿:
+  if є: ʃ: a :ʅ > ʃ: 0 :ʅ :э ¿:
+    return a »
+  :?
+  while є: ʃ: b :ʅ > ʃ: 0 :ʅ :э ¿:
+    return b * 2 »
+  :?
+  return 0 »
+:?
