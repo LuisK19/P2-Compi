@@ -8,6 +8,7 @@ package src.tabla;
  */
 public class Simbolo {
     private String nombre;
+    private String nombreEnCodigo;
     private String categoria;
     private String tipo;
     private int linea;
@@ -24,6 +25,7 @@ public class Simbolo {
      */
     public Simbolo(String nombre, String categoria, String tipo, int linea, int columna) {
         this.nombre = nombre;
+        this.nombreEnCodigo = nombre;
         this.categoria = categoria;
         this.tipo = tipo;
         this.linea = linea;
@@ -32,6 +34,19 @@ public class Simbolo {
 
     public String getNombre() {
         return nombre;
+    }
+
+    public String getNombreEnCodigo() {
+        return nombreEnCodigo;
+    }
+
+    /**
+     * Cambia el nombre con el que el símbolo aparece en el código intermedio.
+     *
+     * @param nombreEnCodigo nombre que se usará en el código intermedio
+     */
+    public void setNombreEnCodigo(String nombreEnCodigo) {
+        this.nombreEnCodigo = nombreEnCodigo;
     }
 
     public String getCategoria() {

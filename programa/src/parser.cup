@@ -199,27 +199,27 @@ valor_arreglo_float ::= literal_float:valor   {: RESULT = GeneradorCodigo.textoF
 
 declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
                 {: parser.semantico.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
-                   RESULT = parser.generador.valorInicial(nombre, tipoDato); :}
+                   RESULT = parser.generador.valorInicial(parser.semantico.nombreEnCodigo(nombre), tipoDato); :}
             | VAL tipo:tipoDato identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
                 {: parser.semantico.validarAsignacion(nombre, tipoDato, valor, asigleft, asigright);
                    parser.semantico.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
-                   RESULT = parser.generador.asignacion(nombre, valor); :}
+                   RESULT = parser.generador.asignacion(parser.semantico.nombreEnCodigo(nombre), valor); :}
             ;
 
 declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano FIN_SENT
                         {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           RESULT = parser.generador.valoresIniciales(nombre, tipoDato, tamano, new ArrayList<String>()); :}
+                           RESULT = parser.generador.valoresIniciales(parser.semantico.nombreEnCodigo(nombre), tipoDato, tamano, new ArrayList<String>()); :}
                     | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_int:valores LLAVE_CIERRA FIN_SENT
                         {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            parser.semantico.validarValoresArreglo(nombre, tipoDato, tamano, "int", valores.size(), nombreleft, nombreright);
                            parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           RESULT = parser.generador.valoresIniciales(nombre, tipoDato, tamano, valores); :}
+                           RESULT = parser.generador.valoresIniciales(parser.semantico.nombreEnCodigo(nombre), tipoDato, tamano, valores); :}
                     | VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano ASIGNACION LLAVE_ABRE valores_arreglo_float:valores LLAVE_CIERRA FIN_SENT
                         {: parser.semantico.validarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
                            parser.semantico.validarValoresArreglo(nombre, tipoDato, tamano, "float", valores.size(), nombreleft, nombreright);
                            parser.semantico.agregarArreglo(nombre, tipoDato, tamano, nombreleft, nombreright);
-                           RESULT = parser.generador.valoresIniciales(nombre, tipoDato, tamano, valores); :}
+                           RESULT = parser.generador.valoresIniciales(parser.semantico.nombreEnCodigo(nombre), tipoDato, tamano, valores); :}
                     ;
 
 tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = tamano; :} ;
@@ -227,12 +227,12 @@ tamano_arreglo ::= CORCHETE_ABRE literal_int:tamano CORCHETE_CIERRA {: RESULT = 
 asignacion ::= identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
                 {: String tipoDestino = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
                    parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
-                   RESULT = parser.generador.asignacion(nombre, valor); :}
+                   RESULT = parser.generador.asignacion(parser.semantico.nombreEnCodigo(nombre), valor); :}
            | identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice CORCHETE_CIERRA ASIGNACION:asig expresion:valor FIN_SENT
                 {: String tipoDestino = parser.semantico.tipoDeArreglo(nombre, nombreleft, nombreright);
                    parser.semantico.validarIndice(indice, corcheteleft, corcheteright);
                    parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
-                   RESULT = parser.generador.asignacionElemento(nombre, indice, valor); :}
+                   RESULT = parser.generador.asignacionElemento(parser.semantico.nombreEnCodigo(nombre), indice, valor); :}
            ;
 
 expresion ::= expr_log:valor {: RESULT = valor; :} ;
@@ -329,7 +329,7 @@ potencia ::= atomo:valor
 atomo ::= literal:valor                                     {: RESULT = valor; :}
       | identificador:nombre
             {: String tipo = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
-               RESULT = parser.generador.cargarEnTemporal(tipo, nombre); :}
+               RESULT = parser.generador.cargarEnTemporal(tipo, parser.semantico.nombreEnCodigo(nombre)); :}
       | PARENTESIS_ABRE expresion:valor PARENTESIS_CIERRA   {: RESULT = valor; :}
       | negativo:valor                                      {: RESULT = valor; :}
       | incremento:valor                                    {: RESULT = valor; :}
@@ -341,7 +341,7 @@ atomo ::= literal:valor                                     {: RESULT = valor; :
 acceso_arreglo ::= identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice CORCHETE_CIERRA
                    {: parser.semantico.validarIndice(indice, corcheteleft, corcheteright);
                       String tipo = parser.semantico.tipoDeArreglo(nombre, nombreleft, nombreright);
-                      RESULT = parser.generador.accesoArreglo(tipo, nombre, indice); :}
+                      RESULT = parser.generador.accesoArreglo(tipo, parser.semantico.nombreEnCodigo(nombre), indice); :}
                ;
 
 negativo ::= negativo_int:valor
@@ -357,11 +357,11 @@ negativo_float ::= OP_MENOS literal_float:valor  {: RESULT = "-" + GeneradorCodi
 
 incremento ::= identificador:nombre OP_INC
                 {: String tipo = parser.semantico.operacionIncremento("++", nombre, nombreleft, nombreright).getTipo();
-                   RESULT = parser.generador.incremento(tipo, nombre, "+"); :}
+                   RESULT = parser.generador.incremento(tipo, parser.semantico.nombreEnCodigo(nombre), "+"); :}
            ;
 decremento ::= identificador:nombre OP_DEC
                 {: String tipo = parser.semantico.operacionIncremento("--", nombre, nombreleft, nombreright).getTipo();
-                   RESULT = parser.generador.incremento(tipo, nombre, "-"); :}
+                   RESULT = parser.generador.incremento(tipo, parser.semantico.nombreEnCodigo(nombre), "-"); :}
            ;
 
 sentencia ::= declaracion:codigo           {: RESULT = codigo; :}
@@ -466,7 +466,7 @@ actualizacion_for ::= expresion:valor
                   | identificador:nombre ASIGNACION:asig expresion:valor
                     {: String tipoDestino = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
                        parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
-                       RESULT = parser.generador.asignacion(nombre, valor); :}
+                       RESULT = parser.generador.asignacion(parser.semantico.nombreEnCodigo(nombre), valor); :}
                   ;
 
 sentencia_return ::= RETURN:palabraReturn expresion:valor FIN_SENT
@@ -490,14 +490,14 @@ param_write ::= literal_str:valor   {: RESULT = parser.generador.cargarEnTempora
             | identificador:nombre
                 {: String tipo = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
                    parser.semantico.validarTipoWrite(nombre, tipo, nombreleft, nombreright);
-                   RESULT = parser.generador.cargarEnTemporal(tipo, nombre); :}
+                   RESULT = parser.generador.cargarEnTemporal(tipo, parser.semantico.nombreEnCodigo(nombre)); :}
             | acceso_arreglo:valor {: RESULT = valor; :}
             ;
 
 sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA FIN_SENT
                    {: String tipo = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
                       parser.semantico.validarTipoRead(nombre, tipo, nombreleft, nombreright);
-                      RESULT = parser.generador.sentenciaRead(nombre); :}
+                      RESULT = parser.generador.sentenciaRead(parser.semantico.nombreEnCodigo(nombre)); :}
                ;
 
 funcion ::= encabezado_funcion:nombreFuncion param_fun:parametros cuerpo_funcion:cuerpo
@@ -528,7 +528,7 @@ params ::= parametro:codigo                 {: RESULT = codigo; :}
 parametro ::= tipo:tipoDato identificador:nombre
               {: parser.semantico.agregarSimbolo(nombre, "parametro", tipoDato, nombreleft, nombreright);
                  parser.semantico.agregarTipoParametro(tipoDato);
-                 RESULT = parser.generador.parametro(tipoDato, nombre); :}
+                 RESULT = parser.generador.parametro(tipoDato, parser.semantico.nombreEnCodigo(nombre)); :}
           ;
 
 param_fun ::= PARENTESIS_ABRE params:codigo PARENTESIS_CIERRA {: RESULT = codigo; :}
