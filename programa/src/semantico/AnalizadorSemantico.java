@@ -76,15 +76,33 @@ public class AnalizadorSemantico {
     /** Agrega una variable o parámetro, si no está repetido en el alcance actual. */
     public void agregarSimbolo(String nombre, String categoria, String tipo, int linea, int columna) {
         if (!estaDuplicado(nombre, linea, columna)) {
-            tabla.agregar(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
+            agregarVariable(new Simbolo(nombre, categoria, tipo, linea + 1, columna + 1));
         }
     }
 
     /** Agrega un arreglo, si no está repetido en el alcance actual. */
     public void agregarArreglo(String nombre, String tipo, int tamano, int linea, int columna) {
         if (!estaDuplicado(nombre, linea, columna)) {
-            tabla.agregar(new SimboloArreglo(nombre, tipo, tamano, linea + 1, columna + 1));
+            agregarVariable(new SimboloArreglo(nombre, tipo, tamano, linea + 1, columna + 1));
         }
+    }
+
+    /** Agrega un símbolo con un nombre propio en el código si oculta a otro visible. */
+    private void agregarVariable(Simbolo simbolo) {
+        Simbolo oculto = tabla.buscar(simbolo.getNombre());
+        if (oculto != null) {
+            simbolo.setNombreEnCodigo(oculto.getNombreEnCodigo() + "_local");
+        }
+        tabla.agregar(simbolo);
+    }
+
+    /** Devuelve el nombre que tiene en el código intermedio el símbolo visible. */
+    public String nombreEnCodigo(String nombre) {
+        Simbolo simbolo = tabla.buscar(nombre);
+        if (simbolo == null) {
+            return nombre;
+        }
+        return simbolo.getNombreEnCodigo();
     }
 
     /** Agrega una función y la marca como la función que se está analizando. */
@@ -386,6 +404,15 @@ public class AnalizadorSemantico {
         if (!valor.esError() && !valor.getTipo().equals(tipoFuncion)) {
             reportarError("la funcion '" + funcionActual.getNombre() + "' debe retornar " + tipoFuncion
                     + ", no " + valor.getTipo(), linea, columna);
+        }
+    }
+
+    /** Reporta como inaccesible la línea que sigue a otra que corta el flujo. */
+    public void validarLineaAlcanzable(ResultadoSentencia linea, int lineaSiguiente) {
+        if (linea.cortaFlujo()) {
+            huboErrores = true;
+            System.err.println("Error semantico en la linea " + (lineaSiguiente + 1)
+                    + ": codigo inaccesible, la ejecucion nunca llega a esta linea");
         }
     }
 

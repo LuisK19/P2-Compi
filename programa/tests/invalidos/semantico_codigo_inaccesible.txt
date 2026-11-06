@@ -1,0 +1,47 @@
+int tras_return є: int a :э ¿:
+  return 1 »
+  write є: a :э »
+  write є: 5 :э »
+:?
+
+int tras_if_else є: int a :э ¿:
+  if є: ʃ: a :ʅ > ʃ: 0 :ʅ :э ¿:
+    return 1 »
+  :? else ¿:
+    return 0 »
+  :?
+  write є: a :э »
+:?
+
+int tras_elif є: int a :э ¿:
+  if є: ʃ: a :ʅ > ʃ: 0 :ʅ :э ¿:
+    return 1 »
+  :? elif є: ʃ: a :ʅ < ʃ: 0 :ʅ :э ¿:
+    return 2 »
+  :? else ¿:
+    return 0 »
+  :?
+  write є: a :э »
+:?
+
+int tras_bloque є: int a :э ¿:
+  ¿:
+    return 1 »
+  :?
+  write є: a :э »
+:?
+
+void principal є: :э ¿:
+  while є: true :э ¿:
+    break »
+    write є: 1 :э »
+  :?
+  for є: val int i Ͱ 0 » ʃ: i :ʅ < ʃ: 3 :ʅ » i++ :э ¿:
+    if є: ʃ: i :ʅ == ʃ: 1 :ʅ :э ¿:
+      break »
+    :? else ¿:
+      break »
+    :?
+    write є: i :э »
+  :?
+:?

@@ -378,6 +378,115 @@ public class GeneradorCodigo {
     }
 
     /**
+     * Forma el nombre con el que una función aparece en el código intermedio.
+     *
+     * @param tipoRetorno tipo que retorna la función
+     * @param nombre nombre de la función
+     * @return nombre con el tipo al inicio, por ejemplo int_suma
+     */
+    public String nombreFuncion(String tipoRetorno, String nombre) {
+        return tipoRetorno + "_" + nombre;
+    }
+
+    /**
+     * Genera la instrucción que registra un parámetro de una función.
+     *
+     * @param tipo tipo del parámetro
+     * @param nombre nombre del parámetro
+     * @return código del parámetro
+     */
+    public String parametro(String tipo, String nombre) {
+        return instruccion("param_" + tipo + " " + nombre);
+    }
+
+    /**
+     * Genera una función completa: su etiqueta de entrada, los parámetros, el
+     * cuerpo y su marca de final.
+     *
+     * @param nombreFuncion nombre dado por {@link #nombreFuncion(String, String)}
+     * @param parametros código de los parámetros (vacío si no tiene)
+     * @param cuerpo código del cuerpo de la función
+     * @return código de la función
+     */
+    public String funcion(String nombreFuncion, String parametros, String cuerpo) {
+        return etiqueta(nombreFuncion) + parametros + cuerpo
+                + instruccion(nombreFuncion + "_end");
+    }
+
+    /**
+     * Genera un return: el código de la expresión y la instrucción que retorna
+     * su resultado.
+     *
+     * @param valor expresión retornada
+     * @return código del return
+     */
+    public String sentenciaReturn(ResultadoExpresion valor) {
+        return valor.getCodigo() + instruccion("return " + valor.getDireccion());
+    }
+
+    /**
+     * Prepara una llamada a función: calcula cada argumento y lo pasa con param
+     * antes de seguir con el siguiente.
+     *
+     * @param tipo tipo que retorna la función
+     * @param nombre nombre de la función
+     * @param argumentos argumentos en el orden de la llamada
+     * @return resultado con la instrucción call como dirección y el código de
+     *     los argumentos
+     */
+    public ResultadoExpresion llamadaFuncion(String tipo, String nombre,
+            ArrayList<ResultadoExpresion> argumentos) {
+        String codigo = "";
+        for (ResultadoExpresion argumento : argumentos) {
+            codigo += argumento.getCodigo() + instruccion("param " + argumento.getDireccion());
+        }
+        return new ResultadoExpresion(tipo, "call " + nombre + ", " + argumentos.size(), codigo);
+    }
+
+    /**
+     * Guarda en un temporal el valor que retorna una llamada usada dentro de
+     * una expresión.
+     *
+     * @param llamada resultado dado por {@link #llamadaFuncion}
+     * @return resultado con el temporal del valor retornado y todo el código
+     */
+    public ResultadoExpresion valorDeLlamada(ResultadoExpresion llamada) {
+        ResultadoExpresion valor = cargarEnTemporal(llamada.getTipo(), llamada.getDireccion());
+        String codigo = llamada.getCodigo() + valor.getCodigo();
+        return new ResultadoExpresion(llamada.getTipo(), valor.getDireccion(), codigo);
+    }
+
+    /**
+     * Genera una llamada usada como sentencia, sin guardar el valor retornado.
+     *
+     * @param llamada resultado dado por {@link #llamadaFuncion}
+     * @return código de los argumentos y de la instrucción call
+     */
+    public String llamadaComoSentencia(ResultadoExpresion llamada) {
+        return llamada.getCodigo() + instruccion(llamada.getDireccion());
+    }
+
+    /**
+     * Genera un write: el código del valor y la instrucción que lo escribe.
+     *
+     * @param valor valor escrito
+     * @return código del write
+     */
+    public String sentenciaWrite(ResultadoExpresion valor) {
+        return valor.getCodigo() + instruccion("write " + valor.getDireccion());
+    }
+
+    /**
+     * Genera un read, que guarda directamente en la variable el valor leído.
+     *
+     * @param nombre nombre de la variable
+     * @return código del read
+     */
+    public String sentenciaRead(String nombre) {
+        return instruccion("read " + nombre);
+    }
+
+    /**
      * Escribe un literal flotante sin notación científica
      *
      * @param valor valor del literal
