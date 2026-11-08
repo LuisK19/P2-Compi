@@ -1,3 +1,0 @@
-void principal є: :э ¿:
-  val int x Ͱ 7 % 2 »
-:?

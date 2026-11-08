@@ -1,0 +1,52 @@
+val int a Ͱ »                                         | falta el valor
+val int b Ͱ 1 @ 2 »                                   | caracter no reconocido
+val int 9c Ͱ 1 »                                      | identificador invalido
+val float d Ͱ 2.0 »                                   | flotante con cero final
+val int e Ͱ 007 »                                     | entero con ceros iniciales
+val int f Ͱ 4 % 2 »                                   | operador porcentaje
+val int g Ͱ 4 ^ 2 »                                   | operador circunflejo
+val int h ʃ:n:ʅ »                                     | tamano no literal
+val int i ʃ:2:ʅ Ͱ ¿: 1 + 1, 2 :? »                    | valor no literal
+
+int sin_nombre є: int :э ¿:                           | parametro sin nombre
+    return 1 »
+:?
+
+int bloque_con_error є: :э ¿:
+    val int x Ͱ »                                     | error dentro de la funcion
+    return 1 »
+:?
+
+void principal є: :э ¿:
+    val int x »
+    val int y Ͱ -x »                                  | negativo de variable
+    y Ͱ 5++ »                                         | incremento de literal
+    ++x »                                             | incremento prefijo
+    x + 1 »                                           | expresion suelta
+    val bool b1 Ͱ 1 < 2 »                             | relacional sin corchetes
+    val bool b2 Ͱ ʃ: 1 :ʅ < ʃ: 2 :ʅ < ʃ: 3 :ʅ »       | relacional encadenada
+    val bool b3 Ͱ true λ false »                      | logica sin parentesis
+    write є: 1 + 2 :э »                               | write con expresion
+    write є: 1, 2 :э »                                | write con dos parametros
+    write є: 'a' :э »                                 | write de literal char
+    read є: x + 1 :э »                                | read con expresion
+    while є: true ¿:                                  | falta cerrar la condicion
+        x++ »
+    :?
+    if є: ʃ: x :ʅ > ʃ: 0 :ʅ ¿:                        | falta cerrar la condicion
+        x-- »
+    :? elif є: true ¿:                                | falta cerrar la condicion
+        x++ »
+    :?
+    val string t Ͱ "sin cerrar »                      | string sin cerrar
+    if є: true :э ¿: :?                               | bloque vacio
+    x Ͱ 1 »
+:?
+
+val int despues Ͱ »                                   | error despues de principal
+
+int final є: :э ¿:
+    return 1 »
+:?
+
+¡ comentario sin cerrar                               | comentario sin cerrar

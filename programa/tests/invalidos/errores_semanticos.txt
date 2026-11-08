@@ -1,0 +1,92 @@
+val int repetida »
+val int repetida »                                    | declaracion duplicada
+val string nombres ʃ:2:ʅ »                            | arreglo de string
+val int vacio ʃ:0:ʅ »                                 | tamano 0
+val int pocos ʃ:2:ʅ Ͱ ¿: 1, 2, 3 :? »                 | mas valores que tamano
+val float mezcla ʃ:2:ʅ Ͱ ¿: 1, 2 :? »                 | valores de otro tipo
+val int global_temprana Ͱ tardia »                    | usada antes de declararse
+val int tardia Ͱ 1 »
+
+string texto є: :э ¿:                                 | retorno string
+    return "hola" »
+:?
+
+void procedimiento є: :э ¿:                           | void que no es principal
+    val int a »
+:?
+
+int sin_return є: :э ¿:                               | funcion sin return
+    val int a »
+:?
+
+int retorno_incorrecto є: :э ¿:
+    return 1.5 »                                      | tipo de return
+:?
+
+int parametros є: int a, int a :э ¿:                  | parametro duplicado
+    return a »
+:?
+
+int inaccesible є: int a :э ¿:
+    if є: ʃ: a :ʅ > ʃ: 0 :ʅ :э ¿:
+        return 1 »
+    :? else ¿:
+        return 2 »
+    :?
+    write є: a :э »                                   | codigo inaccesible
+:?
+
+void principal є: :э ¿:
+    val int i Ͱ 1 »
+    val float f Ͱ 1.5 »
+    val bool b Ͱ true »
+    val char c Ͱ 'a' »
+    val string s Ͱ "texto" »
+    val int arreglo ʃ:3:ʅ »
+
+    no_existe Ͱ 1 »                                   | variable no declarada
+    val int a1 Ͱ 2.5 »                                | tipo en declaracion
+    i Ͱ f »                                           | tipo en asignacion
+    i Ͱ i + f »                                       | mezcla int y float
+    i Ͱ i / 2 »                                       | / con int
+    f Ͱ f // 2.5 »                                    | // con float
+    f Ͱ f mod 2.5 »                                   | mod con float
+    i Ͱ 2 pot -1 »                                    | exponente negativo
+    f Ͱ f pot 1.5 »                                   | pot con float
+    s Ͱ s + s »                                       | suma de string
+    c++ »                                             | ++ en char
+    b Ͱ ʃ: s :ʅ == ʃ: s :ʅ »                          | igualdad de string
+    b Ͱ ʃ: b :ʅ < ʃ: b :ʅ »                           | menor con bool
+    b Ͱ ʃ: 'a' :ʅ < ʃ: 'b' :ʅ »                       | menor con char
+    b Ͱ ʃ: i :ʅ == ʃ: f :ʅ »                          | comparar int y float
+    b Ͱ є: i :э λ є: b :э »                           | logica con int
+    b Ͱ Σ є: i :э »                                   | negacion con int
+
+    i Ͱ arreglo »                                     | arreglo sin indice
+    i Ͱ i ʃ: 0 :ʅ »                                   | variable con indice
+    i Ͱ arreglo ʃ: 1.5 :ʅ »                           | indice float
+    i Ͱ retorno_incorrecto »                          | funcion usada como variable
+    i є: :э »                                         | variable usada como funcion
+
+    if є: i :э ¿:                                     | condicion int
+        write є: 1 :э »
+    :?
+    while є: f :э ¿:                                  | condicion float
+        i++ »
+    :?
+
+    break »                                           | break fuera de ciclo
+    return 1 »                                        | return en principal
+    write є: c :э »                                   | write de char
+    read є: b :э »                                    | read de bool
+    read є: s :э »                                    | read de string
+
+    desconocida є: 1 :э »                             | funcion no declarada
+    i Ͱ parametros є: 1 :э »                          | cantidad de argumentos
+    i Ͱ parametros є: f, 2 :э »                       | tipo de argumento
+
+    while є: b :э ¿:
+        break »
+        i++ »                                         | codigo inaccesible
+    :?
+:?

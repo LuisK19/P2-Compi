@@ -1,7 +1,0 @@
-void principal є: :э ¿:
-  val int a Ͱ 1 »
-  val int b Ͱ 2 »
-  for є: val int x Ͱ 9 » ʃ: x :ʅ > ʃ: 0 :ʅ » a + b :э ¿:
-    write є: x :э »
-  :?
-:?

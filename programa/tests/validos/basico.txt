@@ -1,5 +1,0 @@
-void principal є: :э ¿:
-  val int x Ͱ -5 »
-  val float y Ͱ 3.14 »
-  write є: x :э »
-:?

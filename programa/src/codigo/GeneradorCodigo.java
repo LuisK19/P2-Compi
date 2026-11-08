@@ -1,0 +1,518 @@
+package src.codigo;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Stack;
+import src.semantico.ResultadoExpresion;
+
+/**
+ * Genera el código intermedio de tres direcciones de cada construcción del
+ * lenguaje y lleva los contadores de temporales y etiquetas.
+ */
+public class GeneradorCodigo {
+    private HashMap<String, Integer> contadoresTemporales = new HashMap<>();
+    private int contadorEtiquetas = 0;
+    private Stack<Integer> numerosIf = new Stack<>();
+    private Stack<Integer> numerosElif = new Stack<>();
+    private Stack<Integer> numerosCiclo = new Stack<>();
+    private Stack<String> salidasCiclo = new Stack<>();
+
+    /**
+     * Crea un temporal nuevo para un valor del tipo indicado. Cada tipo tiene
+     * su propia letra y su propio contador.
+     *
+     * @param tipo tipo del valor que guarda el temporal
+     * @return nombre del temporal (i1, f1, b1, c1, s1, ...)
+     */
+    public String nuevoTemporal(String tipo) {
+        String prefijo = prefijoDeTipo(tipo);
+        int numero = contadoresTemporales.getOrDefault(prefijo, 0) + 1;
+        contadoresTemporales.put(prefijo, numero);
+        return prefijo + numero;
+    }
+
+    /**
+     * Letra con la que empiezan los temporales de cada tipo.
+     *
+     * @param tipo tipo del valor
+     * @return la letra del tipo, o "t" si la expresión tiene error de tipo
+     */
+    private static String prefijoDeTipo(String tipo) {
+        switch (tipo) {
+            case "int":
+                return "i";
+            case "float":
+                return "f";
+            case "bool":
+                return "b";
+            case "char":
+                return "c";
+            case "string":
+                return "s";
+            default:
+                return "t";
+        }
+    }
+
+    /**
+     * Reserva un número para las etiquetas de una estructura de control.
+     *
+     * <p>Todas las etiquetas de una misma estructura usan el mismo número, por
+     * ejemplo while_2, while_body_2 y while_end_2.
+     *
+     * @return número de etiqueta que no se ha usado
+     */
+    public int nuevoNumeroEtiqueta() {
+        contadorEtiquetas++;
+        return contadorEtiquetas;
+    }
+
+    /**
+     * Carga un literal o el valor de una variable en un temporal nuevo, por
+     * ejemplo "i1 = 5" o "i2 = x".
+     *
+     * @param tipo tipo del valor cargado
+     * @param valor literal o nombre de la variable
+     * @return resultado con el temporal como dirección y la instrucción de carga
+     */
+    public ResultadoExpresion cargarEnTemporal(String tipo, String valor) {
+        String temporal = nuevoTemporal(tipo);
+        return new ResultadoExpresion(tipo, temporal, instruccion(temporal + " = " + valor));
+    }
+
+    /**
+     * Genera una operación binaria: el código de ambos operandos y la
+     * instrucción que guarda el resultado en un temporal nuevo.
+     *
+     * @param tipoResultado tipo del resultado de la operación
+     * @param izquierdo operando izquierdo
+     * @param operador símbolo del operador
+     * @param derecho operando derecho
+     * @return resultado con el temporal de la operación y todo su código
+     */
+    public ResultadoExpresion operacionBinaria(String tipoResultado, ResultadoExpresion izquierdo,
+            String operador, ResultadoExpresion derecho) {
+        String temporal = nuevoTemporal(tipoResultado);
+        String operacion = temporal + " = " + izquierdo.getDireccion() + " " + operador + " "
+                + derecho.getDireccion();
+        String codigo = izquierdo.getCodigo() + derecho.getCodigo() + instruccion(operacion);
+        return new ResultadoExpresion(tipoResultado, temporal, codigo);
+    }
+
+    /**
+     * Genera una operación unaria: el código del operando y la instrucción que
+     * guarda el resultado en un temporal nuevo.
+     *
+     * @param tipoResultado tipo del resultado de la operación
+     * @param operador símbolo del operador
+     * @param operando operando de la operación
+     * @return resultado con el temporal de la operación y todo su código
+     */
+    public ResultadoExpresion operacionUnaria(String tipoResultado, String operador,
+            ResultadoExpresion operando) {
+        String temporal = nuevoTemporal(tipoResultado);
+        String operacion = temporal + " = " + operador + " " + operando.getDireccion();
+        String codigo = operando.getCodigo() + instruccion(operacion);
+        return new ResultadoExpresion(tipoResultado, temporal, codigo);
+    }
+
+    /**
+     * Genera un incremento o decremento de una variable. El valor de la
+     * expresión es el que tenía la variable antes de cambiar.
+     *
+     * @param tipo tipo de la variable (int o float)
+     * @param nombre nombre de la variable
+     * @param operador "+" para ++ o "-" para --
+     * @return resultado con el temporal del valor anterior y todo el código
+     */
+    public ResultadoExpresion incremento(String tipo, String nombre, String operador) {
+        String textoUno = "1";
+        if (tipo.equals("float")) {
+            textoUno = "1.0";
+        }
+        ResultadoExpresion valorAnterior = cargarEnTemporal(tipo, nombre);
+        ResultadoExpresion uno = cargarEnTemporal(tipo, textoUno);
+        ResultadoExpresion valorNuevo = operacionBinaria(tipo, valorAnterior, operador, uno);
+        String codigo = asignacion(nombre, valorNuevo);
+        return new ResultadoExpresion(tipo, valorAnterior.getDireccion(), codigo);
+    }
+
+    /**
+     * Genera la asignación de una expresión a una variable: el código de la
+     * expresión y la copia de su temporal a la variable.
+     *
+     * @param nombre nombre de la variable
+     * @param valor expresión asignada
+     * @return código de la asignación
+     */
+    public String asignacion(String nombre, ResultadoExpresion valor) {
+        return valor.getCodigo() + instruccion(nombre + " = " + valor.getDireccion());
+    }
+
+    /**
+     * Genera la asignación de una expresión a un elemento de arreglo: el código
+     * del índice, el código del valor y la copia al elemento.
+     *
+     * @param nombre nombre del arreglo
+     * @param indice expresión del índice
+     * @param valor expresión asignada
+     * @return código de la asignación
+     */
+    public String asignacionElemento(String nombre, ResultadoExpresion indice,
+            ResultadoExpresion valor) {
+        String copia = nombre + "[" + indice.getDireccion() + "] = " + valor.getDireccion();
+        return indice.getCodigo() + valor.getCodigo() + instruccion(copia);
+    }
+
+    /**
+     * Genera la asignación de los valores iniciales de un arreglo, un elemento
+     * a la vez desde la posición 0. Las posiciones sin valor escrito reciben el
+     * valor por defecto del tipo.
+     *
+     * @param nombre nombre del arreglo
+     * @param tipo tipo de los elementos
+     * @param tamano cantidad de elementos del arreglo
+     * @param valores literales en el orden en que se escribieron (puede estar vacía)
+     * @return código de las asignaciones
+     */
+    public String valoresIniciales(String nombre, String tipo, int tamano,
+            ArrayList<String> valores) {
+        String codigo = "";
+        for (int posicion = 0; posicion < tamano; posicion++) {
+            String textoValor = valorPorDefecto(tipo);
+            if (posicion < valores.size()) {
+                textoValor = valores.get(posicion);
+            }
+            ResultadoExpresion indice = cargarEnTemporal("int", String.valueOf(posicion));
+            ResultadoExpresion valor = cargarEnTemporal(tipo, textoValor);
+            codigo += asignacionElemento(nombre, indice, valor);
+        }
+        return codigo;
+    }
+
+    /**
+     * Genera la instrucción que da el valor inicial a una variable declarada
+     * sin valor.
+     *
+     * @param nombre nombre de la variable
+     * @param tipo tipo de la variable
+     * @return código de la inicialización
+     */
+    public String valorInicial(String nombre, String tipo) {
+        return instruccion(nombre + " = " + valorPorDefecto(tipo));
+    }
+
+    /**
+     * Valor con el que empieza una variable de cada tipo.
+     *
+     * @param tipo tipo de la variable
+     * @return el valor por defecto como texto
+     */
+    private static String valorPorDefecto(String tipo) {
+        switch (tipo) {
+            case "float":
+                return "0.0";
+            case "bool":
+                return "false";
+            case "char":
+                return "' '";
+            case "string":
+                return "\"\"";
+            default:
+                return "0";
+        }
+    }
+
+    /**
+     * Genera la lectura de un elemento de arreglo: el código del índice y la
+     * instrucción que copia el elemento a un temporal nuevo.
+     *
+     * @param tipo tipo de los elementos del arreglo
+     * @param nombre nombre del arreglo
+     * @param indice expresión del índice
+     * @return resultado con el temporal del elemento y todo su código
+     */
+    public ResultadoExpresion accesoArreglo(String tipo, String nombre, ResultadoExpresion indice) {
+        String temporal = nuevoTemporal(tipo);
+        String acceso = temporal + " = " + nombre + "[" + indice.getDireccion() + "]";
+        return new ResultadoExpresion(tipo, temporal, indice.getCodigo() + instruccion(acceso));
+    }
+
+    /**
+     * Reserva el número de etiquetas de un if que se empieza a leer. Se guarda
+     * en una pila porque puede haber if dentro de otros if.
+     */
+    public void abrirIf() {
+        numerosIf.push(nuevoNumeroEtiqueta());
+    }
+
+    /**
+     * Genera un if completo con el número reservado en {@link #abrirIf()}. Si la
+     * condición es verdadera se ejecuta el cuerpo; si no, las ramas elif y else.
+     *
+     * @param condicion expresión booleana de la condición
+     * @param cuerpo código del bloque del if
+     * @param ramasElif código de las ramas elif (vacío si no hay)
+     * @param cuerpoElse código del bloque else (vacío si no hay)
+     * @return código de toda la estructura
+     */
+    public String sentenciaIf(ResultadoExpresion condicion, String cuerpo, String ramasElif,
+            String cuerpoElse) {
+        int numero = numerosIf.pop();
+        return condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto if_true_" + numero)
+                + instruccion("goto if_false_" + numero)
+                + etiqueta("if_true_" + numero)
+                + cuerpo
+                + instruccion("goto if_end_" + numero)
+                + etiqueta("if_false_" + numero)
+                + ramasElif
+                + cuerpoElse
+                + etiqueta("if_end_" + numero);
+    }
+
+    /**
+     * Reserva el número de etiquetas de un elif que se empieza a leer.
+     */
+    public void abrirElif() {
+        numerosElif.push(nuevoNumeroEtiqueta());
+    }
+
+    /**
+     * Genera una rama elif con el número reservado en {@link #abrirElif()}. Si
+     * la condición es verdadera se ejecuta el cuerpo y se salta al final del if
+     * al que pertenece; si no, se sigue con la rama siguiente.
+     *
+     * @param condicion expresión booleana de la condición
+     * @param cuerpo código del bloque del elif
+     * @return código de la rama
+     */
+    public String ramaElif(ResultadoExpresion condicion, String cuerpo) {
+        int numero = numerosElif.pop();
+        int numeroIf = numerosIf.peek();
+        return condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto elif_true_" + numero)
+                + instruccion("goto elif_false_" + numero)
+                + etiqueta("elif_true_" + numero)
+                + cuerpo
+                + instruccion("goto if_end_" + numeroIf)
+                + etiqueta("elif_false_" + numero);
+    }
+
+    /**
+     * Reserva el número de etiquetas de un while que se empieza a leer.
+     */
+    public void abrirWhile() {
+        int numero = nuevoNumeroEtiqueta();
+        numerosCiclo.push(numero);
+        salidasCiclo.push("while_end_" + numero);
+    }
+
+    /**
+     * Genera un while con el número reservado en {@link #abrirWhile()}: evalúa
+     * la condición al inicio de cada vuelta y sale cuando es falsa.
+     *
+     * @param condicion expresión booleana de la condición
+     * @param cuerpo código del bloque del while
+     * @return código del ciclo
+     */
+    public String sentenciaWhile(ResultadoExpresion condicion, String cuerpo) {
+        int numero = numerosCiclo.pop();
+        salidasCiclo.pop();
+        return etiqueta("while_" + numero)
+                + condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto while_body_" + numero)
+                + instruccion("goto while_end_" + numero)
+                + etiqueta("while_body_" + numero)
+                + cuerpo
+                + instruccion("goto while_" + numero)
+                + etiqueta("while_end_" + numero);
+    }
+
+    /**
+     * Reserva el número de etiquetas de un for que se empieza a leer.
+     */
+    public void abrirFor() {
+        int numero = nuevoNumeroEtiqueta();
+        numerosCiclo.push(numero);
+        salidasCiclo.push("for_end_" + numero);
+    }
+
+    /**
+     * Genera un for con el número reservado en {@link #abrirFor()}: ejecuta el
+     * inicio una vez y luego funciona como un while que ejecuta la
+     * actualización al final de cada vuelta.
+     *
+     * @param encabezado inicio, condición y actualización del for
+     * @param cuerpo código del bloque del for
+     * @return código del ciclo
+     */
+    public String sentenciaFor(EncabezadoFor encabezado, String cuerpo) {
+        int numero = numerosCiclo.pop();
+        salidasCiclo.pop();
+        ResultadoExpresion condicion = encabezado.getCondicion();
+        return encabezado.getInicio()
+                + etiqueta("for_" + numero)
+                + condicion.getCodigo()
+                + instruccion("if " + condicion.getDireccion() + " goto for_body_" + numero)
+                + instruccion("goto for_end_" + numero)
+                + etiqueta("for_body_" + numero)
+                + cuerpo
+                + encabezado.getActualizacion()
+                + instruccion("goto for_" + numero)
+                + etiqueta("for_end_" + numero);
+    }
+
+    /**
+     * Genera un break: un salto a la salida del ciclo más cercano.
+     *
+     * @return código del salto, o vacío si no hay un ciclo abierto (el
+     *     análisis semántico ya reportó ese error)
+     */
+    public String sentenciaBreak() {
+        if (salidasCiclo.isEmpty()) {
+            return "";
+        }
+        return instruccion("goto " + salidasCiclo.peek());
+    }
+
+    /**
+     * Forma el nombre con el que una función aparece en el código intermedio.
+     *
+     * @param tipoRetorno tipo que retorna la función
+     * @param nombre nombre de la función
+     * @return nombre con el tipo al inicio, por ejemplo int_suma
+     */
+    public String nombreFuncion(String tipoRetorno, String nombre) {
+        return tipoRetorno + "_" + nombre;
+    }
+
+    /**
+     * Genera la instrucción que registra un parámetro de una función.
+     *
+     * @param tipo tipo del parámetro
+     * @param nombre nombre del parámetro
+     * @return código del parámetro
+     */
+    public String parametro(String tipo, String nombre) {
+        return instruccion("param_" + tipo + " " + nombre);
+    }
+
+    /**
+     * Genera una función completa: su etiqueta de entrada, los parámetros, el
+     * cuerpo y su marca de final.
+     *
+     * @param nombreFuncion nombre dado por {@link #nombreFuncion(String, String)}
+     * @param parametros código de los parámetros (vacío si no tiene)
+     * @param cuerpo código del cuerpo de la función
+     * @return código de la función
+     */
+    public String funcion(String nombreFuncion, String parametros, String cuerpo) {
+        return etiqueta(nombreFuncion) + parametros + cuerpo
+                + instruccion(nombreFuncion + "_end");
+    }
+
+    /**
+     * Genera un return: el código de la expresión y la instrucción que retorna
+     * su resultado.
+     *
+     * @param valor expresión retornada
+     * @return código del return
+     */
+    public String sentenciaReturn(ResultadoExpresion valor) {
+        return valor.getCodigo() + instruccion("return " + valor.getDireccion());
+    }
+
+    /**
+     * Prepara una llamada a función: calcula cada argumento y lo pasa con param
+     * antes de seguir con el siguiente.
+     *
+     * @param tipo tipo que retorna la función
+     * @param nombre nombre de la función
+     * @param argumentos argumentos en el orden de la llamada
+     * @return resultado con la instrucción call como dirección y el código de
+     *     los argumentos
+     */
+    public ResultadoExpresion llamadaFuncion(String tipo, String nombre,
+            ArrayList<ResultadoExpresion> argumentos) {
+        String codigo = "";
+        for (ResultadoExpresion argumento : argumentos) {
+            codigo += argumento.getCodigo() + instruccion("param " + argumento.getDireccion());
+        }
+        return new ResultadoExpresion(tipo, "call " + nombre + ", " + argumentos.size(), codigo);
+    }
+
+    /**
+     * Guarda en un temporal el valor que retorna una llamada usada dentro de
+     * una expresión.
+     *
+     * @param llamada resultado dado por {@link #llamadaFuncion}
+     * @return resultado con el temporal del valor retornado y todo el código
+     */
+    public ResultadoExpresion valorDeLlamada(ResultadoExpresion llamada) {
+        ResultadoExpresion valor = cargarEnTemporal(llamada.getTipo(), llamada.getDireccion());
+        String codigo = llamada.getCodigo() + valor.getCodigo();
+        return new ResultadoExpresion(llamada.getTipo(), valor.getDireccion(), codigo);
+    }
+
+    /**
+     * Genera una llamada usada como sentencia, sin guardar el valor retornado.
+     *
+     * @param llamada resultado dado por {@link #llamadaFuncion}
+     * @return código de los argumentos y de la instrucción call
+     */
+    public String llamadaComoSentencia(ResultadoExpresion llamada) {
+        return llamada.getCodigo() + instruccion(llamada.getDireccion());
+    }
+
+    /**
+     * Genera un write: el código del valor y la instrucción que lo escribe.
+     *
+     * @param valor valor escrito
+     * @return código del write
+     */
+    public String sentenciaWrite(ResultadoExpresion valor) {
+        return valor.getCodigo() + instruccion("write " + valor.getDireccion());
+    }
+
+    /**
+     * Genera un read, que guarda directamente en la variable el valor leído.
+     *
+     * @param nombre nombre de la variable
+     * @return código del read
+     */
+    public String sentenciaRead(String nombre) {
+        return instruccion("read " + nombre);
+    }
+
+    /**
+     * Escribe un literal flotante sin notación científica.
+     *
+     * @param valor valor del literal
+     * @return el literal como texto
+     */
+    public static String textoFlotante(Double valor) {
+        return BigDecimal.valueOf(valor).toPlainString();
+    }
+
+    /**
+     * Convierte un texto en una instrucción de código intermedio (una línea).
+     *
+     * @param texto instrucción, por ejemplo "i3 = i1 + i2"
+     * @return la instrucción terminada en salto de línea
+     */
+    public static String instruccion(String texto) {
+        return texto + "\n";
+    }
+
+    /**
+     * Convierte un nombre en una línea de etiqueta, por ejemplo "if_end_1:".
+     *
+     * @param nombre nombre de la etiqueta
+     * @return la etiqueta terminada en salto de línea
+     */
+    public static String etiqueta(String nombre) {
+        return instruccion(nombre + ":");
+    }
+}

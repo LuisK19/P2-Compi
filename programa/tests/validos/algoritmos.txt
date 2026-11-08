@@ -1,0 +1,102 @@
+| Algoritmos completos: recursion, ciclos anidados y arreglos
+
+val int datos ʃ:6:ʅ Ͱ ¿: 9, 4, 7, 1, 8, 2 :? »
+val int total Ͱ 6 »
+
+int factorial є: int n :э ¿:
+    if є: ʃ: n :ʅ <= ʃ: 1 :ʅ :э ¿:
+        return 1 »
+    :?
+    return n * factorial є: n - 1 :э »
+:?
+
+int fibonacci є: int n :э ¿:
+    if є: ʃ: n :ʅ < ʃ: 2 :ʅ :э ¿:
+        return n »
+    :?
+    return fibonacci є: n - 1 :э + fibonacci є: n - 2 :э »
+:?
+
+int mcd є: int a, int b :э ¿:
+    while є: ʃ: b :ʅ != ʃ: 0 :ʅ :э ¿:
+        val int resto Ͱ a mod b »
+        a Ͱ b »
+        b Ͱ resto »
+    :?
+    return a »
+:?
+
+bool es_primo є: int n :э ¿:
+    if є: ʃ: n :ʅ < ʃ: 2 :ʅ :э ¿:
+        return false »
+    :?
+    for є: val int d Ͱ 2 » ʃ: d * d :ʅ <= ʃ: n :ʅ » d++ :э ¿:
+        if є: ʃ: n mod d :ʅ == ʃ: 0 :ʅ :э ¿:
+            return false »
+        :?
+    :?
+    return true »
+:?
+
+int buscar є: int objetivo :э ¿:
+    for є: val int i Ͱ 0 » ʃ: i :ʅ < ʃ: total :ʅ » i++ :э ¿:
+        if є: ʃ: datos ʃ: i :ʅ :ʅ == ʃ: objetivo :ʅ :э ¿:
+            return i »
+        :?
+    :?
+    return -1 »
+:?
+
+int ordenar є: :э ¿:
+    val int cambios Ͱ 0 »
+    for є: val int i Ͱ 0 » ʃ: i :ʅ < ʃ: total - 1 :ʅ » i++ :э ¿:
+        for є: val int j Ͱ 0 » ʃ: j :ʅ < ʃ: total - 1 - i :ʅ » j++ :э ¿:
+            if є: ʃ: datos ʃ: j :ʅ :ʅ > ʃ: datos ʃ: j + 1 :ʅ :ʅ :э ¿:
+                val int auxiliar Ͱ datos ʃ: j :ʅ »
+                datos ʃ: j :ʅ Ͱ datos ʃ: j + 1 :ʅ »
+                datos ʃ: j + 1 :ʅ Ͱ auxiliar »
+                cambios++ »
+            :?
+        :?
+    :?
+    return cambios »
+:?
+
+float promedio є: :э ¿:
+    val float acumulado Ͱ 0.0 »
+    val float pesos ʃ:3:ʅ Ͱ ¿: 1.5, 2.5, 3.5 :? »
+    for є: val int i Ͱ 0 » ʃ: i :ʅ < ʃ: 3 :ʅ » i++ :э ¿:
+        acumulado Ͱ acumulado + pesos ʃ: i :ʅ »
+    :?
+    return acumulado / 3.5 »
+:?
+
+void principal є: :э ¿:
+    val int n »
+    val bool primo »
+    read є: n :э »
+
+    write є: "factorial" :э »
+    val int f Ͱ factorial є: n :э »
+    write є: f :э »
+
+    val int fib Ͱ fibonacci є: n :э »
+    write є: fib :э »
+
+    val int comun Ͱ mcd є: 48, 18 :э »
+    write є: comun :э »
+
+    primo Ͱ es_primo є: n :э »
+    write є: primo :э »
+
+    ordenar є: :э »
+    val int posicion Ͱ buscar є: 7 :э »
+    if є: ʃ: posicion :ʅ >= ʃ: 0 :ʅ :э ¿:
+        write є: datos ʃ: posicion :ʅ :э »
+    :? else ¿:
+        write є: "no encontrado" :э »
+    :?
+
+    val float media Ͱ promedio є: :э »
+    write є: media :э »
+:?

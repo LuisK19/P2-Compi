@@ -1,3 +1,0 @@
-void principal ¿:
-  val int x Ͱ 1 »
-:?

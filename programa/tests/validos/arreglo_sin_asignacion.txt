@@ -1,7 +1,0 @@
-val int globales ʃ: 4 :ʅ »
-val float pesos ʃ: 2 :ʅ Ͱ ¿: 0.5, 1.5 :? »
-void principal є: :э ¿:
-  val int arr ʃ: 5 :ʅ »
-  val float notas ʃ: 3 :ʅ »
-  globales ʃ: 0 :ʅ Ͱ arr ʃ: 1 :ʅ »
-:?
