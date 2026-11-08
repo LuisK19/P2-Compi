@@ -1,6 +1,7 @@
 package src;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -39,11 +40,19 @@ public class App {
     }
 
     /**
-     * Configura la salida de consola en UTF-8.
+     * Configura la salida de consola en UTF-8. También cambia la consola de
+     * Windows a UTF-8 con chcp, porque por defecto interpreta la salida con
+     * otra página de códigos y los símbolos del lenguaje se verían deformados.
      */
     private static void usarSalidaUtf8() {
         System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
         System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
+
+        try {
+            new ProcessBuilder("cmd", "/c", "chcp 65001 >nul").inheritIO().start().waitFor();
+        } catch (IOException | InterruptedException e) {
+            System.err.println("No se pudo cambiar la codificacion de la consola.");
+        }
     }
 
     /**
