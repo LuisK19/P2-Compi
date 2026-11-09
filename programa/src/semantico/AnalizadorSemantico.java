@@ -542,15 +542,32 @@ public class AnalizadorSemantico {
     }
 
     /**
-     * Valida que el índice de un arreglo sea int.
+     * Valida que el índice de un arreglo sea int y, si es un literal, que esté
+     * dentro del tamaño del arreglo. Un índice calculado solo se conoce al
+     * ejecutar, así que no se revisa su rango.
      *
+     * @param nombre nombre del arreglo
      * @param indice expresión del índice
      * @param linea línea del índice
      * @param columna columna del índice
      */
-    public void validarIndice(ResultadoExpresion indice, int linea, int columna) {
-        if (!indice.esError() && !indice.getTipo().equals("int")) {
+    public void validarIndice(String nombre, ResultadoExpresion indice, int linea, int columna) {
+        if (indice.esError()) {
+            return;
+        }
+        if (!indice.getTipo().equals("int")) {
             reportarError("el indice de un arreglo debe ser de tipo int, no " + indice.getTipo(), linea, columna);
+            return;
+        }
+
+        Integer valor = indice.getValorLiteral();
+        Simbolo simbolo = tabla.buscar(nombre);
+        if (valor != null && simbolo instanceof SimboloArreglo) {
+            int tamano = ((SimboloArreglo) simbolo).getTamano();
+            if (valor < 0 || valor >= tamano) {
+                reportarError("el indice " + valor + " esta fuera del arreglo '" + nombre
+                        + "' de tamano " + tamano, linea, columna);
+            }
         }
     }
 
