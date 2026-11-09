@@ -177,7 +177,8 @@ tipo ::= INT   {: RESULT = "int"; :}
      | STR   {: RESULT = "string"; :}
      ;
 
-literal ::= literal_int:valor   {: RESULT = parser.generador.cargarEnTemporal("int", String.valueOf(valor)); :}
+literal ::= literal_int:valor   {: RESULT = parser.generador.cargarEnTemporal("int", String.valueOf(valor));
+                                 RESULT.marcarValorLiteral(valor); :}
         | literal_float:valor {: RESULT = parser.generador.cargarEnTemporal("float", GeneradorCodigo.textoFlotante(valor)); :}
         | literal_bool:valor  {: RESULT = parser.generador.cargarEnTemporal("bool", valor); :}
         | literal_char:valor  {: RESULT = parser.generador.cargarEnTemporal("char", "'" + valor + "'"); :}
@@ -224,7 +225,7 @@ declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
             | VAL tipo:tipoDato identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
                 {: parser.semantico.validarAsignacion(nombre, tipoDato, valor, asigleft, asigright);
                    parser.semantico.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
-                   RESULT = parser.generador.asignacion(parser.semantico.nombreEnCodigo(nombre), valor); :}
+                   RESULT = parser.generador.declaracionConValor(parser.semantico.nombreEnCodigo(nombre), tipoDato, valor); :}
             ;
 
 declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano FIN_SENT
@@ -251,7 +252,7 @@ asignacion ::= identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
                    RESULT = parser.generador.asignacion(parser.semantico.nombreEnCodigo(nombre), valor); :}
            | identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice CORCHETE_CIERRA ASIGNACION:asig expresion:valor FIN_SENT
                 {: String tipoDestino = parser.semantico.tipoDeArreglo(nombre, nombreleft, nombreright);
-                   parser.semantico.validarIndice(indice, corcheteleft, corcheteright);
+                   parser.semantico.validarIndice(nombre, indice, corcheteleft, corcheteright);
                    parser.semantico.validarAsignacion(nombre, tipoDestino, valor, asigleft, asigright);
                    RESULT = parser.generador.asignacionElemento(parser.semantico.nombreEnCodigo(nombre), indice, valor); :}
            ;
@@ -364,14 +365,15 @@ atomo ::= literal:valor                                     {: RESULT = valor; :
       ;
 
 acceso_arreglo ::= identificador:nombre CORCHETE_ABRE:corchete expr_arit:indice CORCHETE_CIERRA
-                   {: parser.semantico.validarIndice(indice, corcheteleft, corcheteright);
+                   {: parser.semantico.validarIndice(nombre, indice, corcheteleft, corcheteright);
                       String tipo = parser.semantico.tipoDeArreglo(nombre, nombreleft, nombreright);
                       RESULT = parser.generador.accesoArreglo(tipo, parser.semantico.nombreEnCodigo(nombre), indice); :}
                ;
 
 negativo ::= negativo_int:valor
                 {: RESULT = parser.generador.cargarEnTemporal("int", valor);
-                   RESULT.marcarLiteralNegativo(); :}
+                   RESULT.marcarLiteralNegativo();
+                   RESULT.marcarValorLiteral(Integer.parseInt(valor)); :}
          | negativo_float:valor
                 {: RESULT = parser.generador.cargarEnTemporal("float", valor);
                    RESULT.marcarLiteralNegativo(); :}
@@ -538,7 +540,7 @@ param_write ::= literal_str:valor   {: RESULT = parser.generador.cargarEnTempora
 sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA FIN_SENT
                    {: String tipo = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
                       parser.semantico.validarTipoRead(nombre, tipo, nombreleft, nombreright);
-                      RESULT = parser.generador.sentenciaRead(parser.semantico.nombreEnCodigo(nombre)); :}
+                      RESULT = parser.generador.sentenciaRead(parser.semantico.nombreEnCodigo(nombre), tipo); :}
                ;
 
 /* Funciones, parámetros y llamadas */
@@ -630,5 +632,5 @@ elementos_opc ::= elementos_opc:previos declaracion:codigo
               ;
 
 programa ::= elementos_opc:antes principal:codigoPrincipal elementos_opc:despues
-             {: parser.codigoIntermedio = parser.codigoGlobales + antes + codigoPrincipal + despues; :}
+             {: parser.codigoIntermedio = parser.generador.programa(parser.codigoGlobales, antes + codigoPrincipal + despues); :}
          ;

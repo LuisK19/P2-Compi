@@ -20,46 +20,22 @@ public class GeneradorCodigo {
 
     /**
      * Crea un temporal nuevo para un valor del tipo indicado. Cada tipo tiene
-     * su propia letra y su propio contador.
+     * su propio contador.
      *
      * @param tipo tipo del valor que guarda el temporal
-     * @return nombre del temporal (i1, f1, b1, c1, s1, ...)
+     * @return nombre del temporal, por ejemplo temp#int#1 o temp#float#1
      */
     public String nuevoTemporal(String tipo) {
-        String prefijo = prefijoDeTipo(tipo);
-        int numero = contadoresTemporales.getOrDefault(prefijo, 0) + 1;
-        contadoresTemporales.put(prefijo, numero);
-        return prefijo + numero;
-    }
-
-    /**
-     * Letra con la que empiezan los temporales de cada tipo.
-     *
-     * @param tipo tipo del valor
-     * @return la letra del tipo, o "t" si la expresión tiene error de tipo
-     */
-    private static String prefijoDeTipo(String tipo) {
-        switch (tipo) {
-            case "int":
-                return "i";
-            case "float":
-                return "f";
-            case "bool":
-                return "b";
-            case "char":
-                return "c";
-            case "string":
-                return "s";
-            default:
-                return "t";
-        }
+        int numero = contadoresTemporales.getOrDefault(tipo, 0) + 1;
+        contadoresTemporales.put(tipo, numero);
+        return "temp#" + tipo + "#" + numero;
     }
 
     /**
      * Reserva un número para las etiquetas de una estructura de control.
      *
      * <p>Todas las etiquetas de una misma estructura usan el mismo número, por
-     * ejemplo while_2, while_body_2 y while_end_2.
+     * ejemplo while#2, while#body#2 y while#end#2.
      *
      * @return número de etiqueta que no se ha usado
      */
@@ -70,7 +46,7 @@ public class GeneradorCodigo {
 
     /**
      * Carga un literal o el valor de una variable en un temporal nuevo, por
-     * ejemplo "i1 = 5" o "i2 = x".
+     * ejemplo "temp#int#1 = 5" o "temp#int#2 = x".
      *
      * @param tipo tipo del valor cargado
      * @param valor literal o nombre de la variable
@@ -166,19 +142,19 @@ public class GeneradorCodigo {
     }
 
     /**
-     * Genera la asignación de los valores iniciales de un arreglo, un elemento
-     * a la vez desde la posición 0. Las posiciones sin valor escrito reciben el
-     * valor por defecto del tipo.
+     * Genera la declaración de un arreglo y la asignación de sus valores
+     * iniciales, un elemento a la vez desde la posición 0. Las posiciones sin
+     * valor escrito reciben el valor por defecto del tipo.
      *
      * @param nombre nombre del arreglo
      * @param tipo tipo de los elementos
      * @param tamano cantidad de elementos del arreglo
      * @param valores literales en el orden en que se escribieron (puede estar vacía)
-     * @return código de las asignaciones
+     * @return código de la declaración, por ejemplo array#int datos[3], y de las asignaciones
      */
     public String valoresIniciales(String nombre, String tipo, int tamano,
             ArrayList<String> valores) {
-        String codigo = "";
+        String codigo = instruccion("array#" + tipo + " " + nombre + "[" + tamano + "]");
         for (int posicion = 0; posicion < tamano; posicion++) {
             String textoValor = valorPorDefecto(tipo);
             if (posicion < valores.size()) {
@@ -192,15 +168,27 @@ public class GeneradorCodigo {
     }
 
     /**
-     * Genera la instrucción que da el valor inicial a una variable declarada
-     * sin valor.
+     * Genera la declaración de una variable sin valor y su inicialización con
+     * el valor por defecto del tipo, cargado primero en un temporal.
      *
      * @param nombre nombre de la variable
      * @param tipo tipo de la variable
-     * @return código de la inicialización
+     * @return código de la declaración y de la inicialización
      */
     public String valorInicial(String nombre, String tipo) {
-        return instruccion(nombre + " = " + valorPorDefecto(tipo));
+        return declaracionConValor(nombre, tipo, cargarEnTemporal(tipo, valorPorDefecto(tipo)));
+    }
+
+    /**
+     * Genera la declaración de una variable y la asignación de su valor.
+     *
+     * @param nombre nombre de la variable
+     * @param tipo tipo de la variable
+     * @param valor expresión asignada
+     * @return código de la declaración, por ejemplo var#int x, y de la asignación
+     */
+    public String declaracionConValor(String nombre, String tipo, ResultadoExpresion valor) {
+        return instruccion("var#" + tipo + " " + nombre) + asignacion(nombre, valor);
     }
 
     /**
@@ -261,15 +249,15 @@ public class GeneradorCodigo {
             String cuerpoElse) {
         int numero = numerosIf.pop();
         return condicion.getCodigo()
-                + instruccion("if " + condicion.getDireccion() + " goto if_true_" + numero)
-                + instruccion("goto if_false_" + numero)
-                + etiqueta("if_true_" + numero)
+                + instruccion("if " + condicion.getDireccion() + " goto if#true#" + numero)
+                + instruccion("goto if#false#" + numero)
+                + etiqueta("if#true#" + numero)
                 + cuerpo
-                + instruccion("goto if_end_" + numero)
-                + etiqueta("if_false_" + numero)
+                + instruccion("goto if#end#" + numero)
+                + etiqueta("if#false#" + numero)
                 + ramasElif
                 + cuerpoElse
-                + etiqueta("if_end_" + numero);
+                + etiqueta("if#end#" + numero);
     }
 
     /**
@@ -292,12 +280,12 @@ public class GeneradorCodigo {
         int numero = numerosElif.pop();
         int numeroIf = numerosIf.peek();
         return condicion.getCodigo()
-                + instruccion("if " + condicion.getDireccion() + " goto elif_true_" + numero)
-                + instruccion("goto elif_false_" + numero)
-                + etiqueta("elif_true_" + numero)
+                + instruccion("if " + condicion.getDireccion() + " goto elif#true#" + numero)
+                + instruccion("goto elif#false#" + numero)
+                + etiqueta("elif#true#" + numero)
                 + cuerpo
-                + instruccion("goto if_end_" + numeroIf)
-                + etiqueta("elif_false_" + numero);
+                + instruccion("goto if#end#" + numeroIf)
+                + etiqueta("elif#false#" + numero);
     }
 
     /**
@@ -306,7 +294,7 @@ public class GeneradorCodigo {
     public void abrirWhile() {
         int numero = nuevoNumeroEtiqueta();
         numerosCiclo.push(numero);
-        salidasCiclo.push("while_end_" + numero);
+        salidasCiclo.push("while#end#" + numero);
     }
 
     /**
@@ -320,14 +308,14 @@ public class GeneradorCodigo {
     public String sentenciaWhile(ResultadoExpresion condicion, String cuerpo) {
         int numero = numerosCiclo.pop();
         salidasCiclo.pop();
-        return etiqueta("while_" + numero)
+        return etiqueta("while#" + numero)
                 + condicion.getCodigo()
-                + instruccion("if " + condicion.getDireccion() + " goto while_body_" + numero)
-                + instruccion("goto while_end_" + numero)
-                + etiqueta("while_body_" + numero)
+                + instruccion("if " + condicion.getDireccion() + " goto while#body#" + numero)
+                + instruccion("goto while#end#" + numero)
+                + etiqueta("while#body#" + numero)
                 + cuerpo
-                + instruccion("goto while_" + numero)
-                + etiqueta("while_end_" + numero);
+                + instruccion("goto while#" + numero)
+                + etiqueta("while#end#" + numero);
     }
 
     /**
@@ -336,7 +324,7 @@ public class GeneradorCodigo {
     public void abrirFor() {
         int numero = nuevoNumeroEtiqueta();
         numerosCiclo.push(numero);
-        salidasCiclo.push("for_end_" + numero);
+        salidasCiclo.push("for#end#" + numero);
     }
 
     /**
@@ -353,15 +341,15 @@ public class GeneradorCodigo {
         salidasCiclo.pop();
         ResultadoExpresion condicion = encabezado.getCondicion();
         return encabezado.getInicio()
-                + etiqueta("for_" + numero)
+                + etiqueta("for#" + numero)
                 + condicion.getCodigo()
-                + instruccion("if " + condicion.getDireccion() + " goto for_body_" + numero)
-                + instruccion("goto for_end_" + numero)
-                + etiqueta("for_body_" + numero)
+                + instruccion("if " + condicion.getDireccion() + " goto for#body#" + numero)
+                + instruccion("goto for#end#" + numero)
+                + etiqueta("for#body#" + numero)
                 + cuerpo
                 + encabezado.getActualizacion()
-                + instruccion("goto for_" + numero)
-                + etiqueta("for_end_" + numero);
+                + instruccion("goto for#" + numero)
+                + etiqueta("for#end#" + numero);
     }
 
     /**
@@ -382,10 +370,10 @@ public class GeneradorCodigo {
      *
      * @param tipoRetorno tipo que retorna la función
      * @param nombre nombre de la función
-     * @return nombre con el tipo al inicio, por ejemplo int_suma
+     * @return nombre con el tipo de retorno, por ejemplo funcion#int#suma
      */
     public String nombreFuncion(String tipoRetorno, String nombre) {
-        return tipoRetorno + "_" + nombre;
+        return "funcion#" + tipoRetorno + "#" + nombre;
     }
 
     /**
@@ -396,7 +384,7 @@ public class GeneradorCodigo {
      * @return código del parámetro
      */
     public String parametro(String tipo, String nombre) {
-        return instruccion("param_" + tipo + " " + nombre);
+        return instruccion("param#" + tipo + " " + nombre);
     }
 
     /**
@@ -410,7 +398,21 @@ public class GeneradorCodigo {
      */
     public String funcion(String nombreFuncion, String parametros, String cuerpo) {
         return etiqueta(nombreFuncion) + parametros + cuerpo
-                + instruccion(nombreFuncion + "_end");
+                + instruccion(nombreFuncion + "#end");
+    }
+
+    /**
+     * Une las partes del programa: primero la inicialización de las globales,
+     * luego el salto a principal y después las funciones. Así la ejecución
+     * empieza en principal y no cae en la primera función; el final de
+     * principal es el final del programa.
+     *
+     * @param globales código de las variables y arreglos globales
+     * @param funciones código de todas las funciones, en el orden del archivo
+     * @return código intermedio completo
+     */
+    public String programa(String globales, String funciones) {
+        return globales + instruccion("goto " + nombreFuncion("void", "principal")) + funciones;
     }
 
     /**
@@ -467,23 +469,27 @@ public class GeneradorCodigo {
     }
 
     /**
-     * Genera un write: el código del valor y la instrucción que lo escribe.
+     * Genera un write: el código del valor y la instrucción que lo escribe,
+     * con el tipo del valor, por ejemplo write#int.
      *
      * @param valor valor escrito
      * @return código del write
      */
     public String sentenciaWrite(ResultadoExpresion valor) {
-        return valor.getCodigo() + instruccion("write " + valor.getDireccion());
+        return valor.getCodigo()
+                + instruccion("write#" + valor.getTipo() + " " + valor.getDireccion());
     }
 
     /**
-     * Genera un read, que guarda directamente en la variable el valor leído.
+     * Genera un read, que guarda directamente en la variable el valor leído,
+     * con el tipo de la variable, por ejemplo read#int.
      *
      * @param nombre nombre de la variable
+     * @param tipo tipo de la variable
      * @return código del read
      */
-    public String sentenciaRead(String nombre) {
-        return instruccion("read " + nombre);
+    public String sentenciaRead(String nombre, String tipo) {
+        return instruccion("read#" + tipo + " " + nombre);
     }
 
     /**
@@ -499,7 +505,7 @@ public class GeneradorCodigo {
     /**
      * Convierte un texto en una instrucción de código intermedio (una línea).
      *
-     * @param texto instrucción, por ejemplo "i3 = i1 + i2"
+     * @param texto instrucción, por ejemplo "temp#int#3 = temp#int#1 + temp#int#2"
      * @return la instrucción terminada en salto de línea
      */
     public static String instruccion(String texto) {
@@ -507,7 +513,7 @@ public class GeneradorCodigo {
     }
 
     /**
-     * Convierte un nombre en una línea de etiqueta, por ejemplo "if_end_1:".
+     * Convierte un nombre en una línea de etiqueta, por ejemplo "if#end#1:".
      *
      * @param nombre nombre de la etiqueta
      * @return la etiqueta terminada en salto de línea

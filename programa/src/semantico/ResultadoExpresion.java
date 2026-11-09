@@ -13,6 +13,7 @@ public class ResultadoExpresion {
     private String direccion;
     private String codigo;
     private boolean literalNegativo = false;
+    private Integer valorLiteral = null;
 
     /**
      * Crea un resultado que solo tiene tipo.
@@ -64,5 +65,15 @@ public class ResultadoExpresion {
     /** Marca la expresión como un literal negativo. */
     public void marcarLiteralNegativo() {
         literalNegativo = true;
+    }
+
+    /** Devuelve el valor si la expresión es un literal entero, o {@code null} si no lo es. */
+    public Integer getValorLiteral() {
+        return valorLiteral;
+    }
+
+    /** Guarda el valor de la expresión cuando es un literal entero. */
+    public void marcarValorLiteral(int valor) {
+        valorLiteral = valor;
     }
 }
