@@ -225,7 +225,7 @@ declaracion ::= VAL tipo:tipoDato identificador:nombre FIN_SENT
             | VAL tipo:tipoDato identificador:nombre ASIGNACION:asig expresion:valor FIN_SENT
                 {: parser.semantico.validarAsignacion(nombre, tipoDato, valor, asigleft, asigright);
                    parser.semantico.agregarSimbolo(nombre, "variable", tipoDato, nombreleft, nombreright);
-                   RESULT = parser.generador.asignacion(parser.semantico.nombreEnCodigo(nombre), valor); :}
+                   RESULT = parser.generador.declaracionConValor(parser.semantico.nombreEnCodigo(nombre), tipoDato, valor); :}
             ;
 
 declaracion_arreglo ::= VAL tipo:tipoDato identificador:nombre tamano_arreglo:tamano FIN_SENT
@@ -540,7 +540,7 @@ param_write ::= literal_str:valor   {: RESULT = parser.generador.cargarEnTempora
 sentencia_read ::= READ PARENTESIS_ABRE identificador:nombre PARENTESIS_CIERRA FIN_SENT
                    {: String tipo = parser.semantico.tipoDeVariable(nombre, nombreleft, nombreright);
                       parser.semantico.validarTipoRead(nombre, tipo, nombreleft, nombreright);
-                      RESULT = parser.generador.sentenciaRead(parser.semantico.nombreEnCodigo(nombre)); :}
+                      RESULT = parser.generador.sentenciaRead(parser.semantico.nombreEnCodigo(nombre), tipo); :}
                ;
 
 /* Funciones, parámetros y llamadas */
@@ -632,5 +632,5 @@ elementos_opc ::= elementos_opc:previos declaracion:codigo
               ;
 
 programa ::= elementos_opc:antes principal:codigoPrincipal elementos_opc:despues
-             {: parser.codigoIntermedio = parser.codigoGlobales + antes + codigoPrincipal + despues; :}
+             {: parser.codigoIntermedio = parser.generador.programa(parser.codigoGlobales, antes + codigoPrincipal + despues); :}
          ;

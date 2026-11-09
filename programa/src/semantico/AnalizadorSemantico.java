@@ -2,6 +2,7 @@ package src.semantico;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import src.tabla.ReporteTokens;
 import src.tabla.Simbolo;
 import src.tabla.SimboloArreglo;
@@ -25,6 +26,7 @@ public class AnalizadorSemantico {
     private int erroresSintacticos = 0;
     private int erroresSintacticosAlIniciarFuncion = 0;
     private int ciclosAbiertos = 0;
+    private HashSet<String> nombresUsadosEnFuncion = new HashSet<>();
 
     /**
      * Guarda las firmas de funciones obtenidas antes del análisis.
@@ -80,11 +82,16 @@ public class AnalizadorSemantico {
     }
 
     /**
-     * Abre un alcance nuevo en la tabla de símbolos.
+     * Abre un alcance nuevo en la tabla de símbolos. Si se abre desde el
+     * alcance global es el de una función, así que se olvidan los nombres
+     * usados en la función anterior.
      *
      * @param nombre nombre descriptivo del alcance
      */
     public void abrirAlcance(String nombre) {
+        if (tabla.estaEnAlcanceGlobal()) {
+            nombresUsadosEnFuncion.clear();
+        }
         tabla.abrirAlcance(nombre);
     }
 
@@ -137,16 +144,22 @@ public class AnalizadorSemantico {
 
     /**
      * Agrega un símbolo y define su nombre en el código intermedio: las
-     * globales llevan _global y una local que oculta a otra local lleva _local.
+     * globales llevan #global y una local lleva #local cada vez que su nombre
+     * ya se usó en la misma función, porque oculta a otra variable o porque
+     * está en un bloque hermano.
      *
      * @param simbolo símbolo por agregar
      */
     private void agregarVariable(Simbolo simbolo) {
-        Simbolo oculto = tabla.buscar(simbolo.getNombre());
         if (tabla.estaEnAlcanceGlobal()) {
-            simbolo.setNombreEnCodigo(simbolo.getNombre() + "_global");
-        } else if (oculto != null && !oculto.getAlcance().equals("global")) {
-            simbolo.setNombreEnCodigo(oculto.getNombreEnCodigo() + "_local");
+            simbolo.setNombreEnCodigo(simbolo.getNombre() + "#global");
+        } else {
+            String nombreEnCodigo = simbolo.getNombre();
+            while (nombresUsadosEnFuncion.contains(nombreEnCodigo)) {
+                nombreEnCodigo += "#local";
+            }
+            nombresUsadosEnFuncion.add(nombreEnCodigo);
+            simbolo.setNombreEnCodigo(nombreEnCodigo);
         }
         tabla.agregar(simbolo);
         reporteTokens.registrarTabla(simbolo.getLinea() - 1, simbolo.getColumna() - 1, simbolo.getAlcance());
@@ -543,8 +556,7 @@ public class AnalizadorSemantico {
 
     /**
      * Valida que el índice de un arreglo sea int y, si es un literal, que esté
-     * dentro del tamaño del arreglo. Un índice calculado solo se conoce al
-     * ejecutar, así que no se revisa su rango.
+     * dentro del tamaño del arreglo.
      *
      * @param nombre nombre del arreglo
      * @param indice expresión del índice

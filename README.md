@@ -169,7 +169,15 @@ Cada operando va entre `є:` y `:э`.
 | `char`   | Carácter                                     |
 | `string` | Cadena de texto                              |
 
-### Ejemplo de programa válido
+### Ejemplo de programa válido y su código intermedio
+
+<table>
+<tr>
+<th>Código fuente</th>
+<th>Código intermedio</th>
+</tr>
+<tr>
+<td valign="top">
 
 ```
 val int limite Ͱ 3 »
@@ -188,6 +196,52 @@ void principal є: :э ¿:
 :?
 ```
 
+</td>
+<td valign="top">
+
+```
+var#int limite#global
+temp#int#1 = 3
+limite#global = temp#int#1
+goto funcion#void#principal
+funcion#int#doble:
+param#int x
+temp#int#2 = x
+temp#int#3 = 2
+temp#int#4 = temp#int#2 * temp#int#3
+return temp#int#4
+funcion#int#doble#end
+funcion#void#principal:
+var#int i
+temp#int#5 = 0
+i = temp#int#5
+while#1:
+temp#int#6 = i
+temp#int#7 = limite#global
+temp#bool#1 = temp#int#6 < temp#int#7
+if temp#bool#1 goto while#body#1
+goto while#end#1
+while#body#1:
+var#int resultado
+temp#int#8 = i
+param temp#int#8
+temp#int#9 = call doble, 1
+resultado = temp#int#9
+temp#int#10 = resultado
+write#int temp#int#10
+temp#int#11 = i
+temp#int#12 = 1
+temp#int#13 = temp#int#11 + temp#int#12
+i = temp#int#13
+goto while#1
+while#end#1:
+funcion#void#principal#end
+```
+
+</td>
+</tr>
+</table>
+
 ## Notas
 
 - Los archivos generados (`Lexer.java`, `sym.java`, `Parser.java`) **no** se editan a mano;
@@ -195,5 +249,9 @@ void principal є: :э ¿:
 - Las variables globales y las funciones pueden ir en cualquier orden, con exactamente un
   `principal`. Una variable debe declararse antes de usarse; una función se puede llamar aunque esté
   declarada más abajo.
-- En el código intermedio, las variables globales llevan el sufijo `_global` y una variable local que
-  oculta a otra local lleva `_local`.
+- En el código intermedio, los nombres que crea el compilador usan `#`, que no puede aparecer en un
+  identificador, así que nunca chocan con los del programa: temporales `temp#int#1`, etiquetas
+  `if#true#1`, funciones `funcion#int#fact:`, declaraciones `var#int x` y `array#int datos#global[3]`,
+  y `read#int x` / `write#int temp#int#1`. Las globales llevan `#global` y una local cuyo nombre ya se
+  usó en la función lleva `#local`. Después de las globales, `goto funcion#void#principal` marca el
+  inicio del programa.
